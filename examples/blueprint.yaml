@@ -1,0 +1,64 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.4/types.yaml
+  - ../plugin.yaml
+
+node_templates:
+
+  app:
+    type: cloudify.nodes.Root
+    relationships:
+      - target: dp_compute
+        type: cloudify.relationships.contained_in
+
+  dp_compute:
+    type: cloudify.nodes.DeploymentPlan
+    capabilities:
+      scalable:
+        properties:
+          default_instances: 4
+    properties:
+      deployment_plans:
+        cloud_2_compute:
+          capacity: 4
+          constraints:
+            cloud_1_compute: 3
+        cloud_3_compute:
+          capacity: 4
+          constraints:
+            cloud_2_compute: 3
+      agent_config:
+        install_method: none
+    relationships:
+      - target: cloud_1_compute
+        type: cloudify.dp.relationships.plans
+      - target: cloud_2_compute
+        type: cloudify.dp.relationships.plans
+      - target: cloud_3_compute
+        type: cloudify.dp.relationships.plans
+
+  cloud_1_compute:
+    type: cloudify.nodes.Compute
+    capabilities:
+      scalable:
+        properties:
+          default_instances: 2
+    properties:
+      ip: 127.0.0.1
+      agent_config:
+        install_method: none
+
+  cloud_2_compute:
+    type: cloudify.nodes.Compute
+    properties:
+      ip: 127.0.0.2
+      agent_config:
+        install_method: none
+
+  cloud_3_compute:
+    type: cloudify.nodes.Compute
+    properties:
+      ip: 127.0.0.3
+      agent_config:
+        install_method: none
