@@ -4,7 +4,7 @@ plugins:
 
   dp:
     executor: central_deployment_agent
-    source: deployment-plan
+    source: https://github.com/cloudify-examples/mixed-iaas-plugin/archive/master.zip
     install: true
 
 node_types:
