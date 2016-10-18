@@ -1,0 +1,63 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+plugins:
+
+  dp:
+    executor: central_deployment_agent
+    source: deployment-plan
+    install: true
+
+node_types:
+
+  cloudify.nodes.DeploymentPlan:
+    derived_from: cloudify.nodes.Compute
+    properties:
+      deployment_plans:
+        default: {}
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: dp.dp_plugin.operations.create
+          inputs:
+            args:
+              default: {}
+
+relationships:
+
+  cloudify.dp.relationships.plans:
+    derived_from: cloudify.relationships.depends_on
+    source_interfaces:
+      cloudify.interfaces.relationship_lifecycle:
+        preconfigure:
+          implementation: dp.dp_plugin.operations.preconfigure_plan
+          inputs:
+            args:
+              default: {}
+        unlink:
+          implementation: dp.dp_plugin.operations.unlink_plan
+          inputs:
+            args:
+              default: {}
+
+workflows:
+
+  scale_or_burst:
+    mapping: dp.dp_plugin.workflows.scale_or_burst
+    parameters:
+      scalable_entity_name:
+        description: >
+          This is the node name of the dp node that decides which parent to burst.
+      delta:
+        description: >
+          The number of additional instances to deploy.
+
+  dp_heal:
+    mapping: dp.dp_plugin.workflows.heal_dp
+    parameters:
+      node_instance_id:
+        description: >
+          This is the node_instance_id to heal.
+      diagnose_value:
+        description: >
+          If you want to tell everyone why.
+

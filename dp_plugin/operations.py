@@ -19,7 +19,7 @@ from cloudify.exceptions import NonRecoverableError, RecoverableError
 from cloudify.workflows.local import StorageConflictError
 from cloudify_rest_client.exceptions import CloudifyClientError
 
-PLANS = 'deployment_plans' 
+PLANS = 'deployment_plans'
 BA = 'burst_after'
 MANAGED_BY = 'managed_by'
 MANAGING = 'managing'
