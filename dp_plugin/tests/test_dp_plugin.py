@@ -19,7 +19,9 @@ import testtools
 from cloudify.mocks import MockContext
 from cloudify.workflows.workflow_context import (
     LocalCloudifyWorkflowContextHandler,
-    CloudifyWorkflowContextInternal)
+    CloudifyWorkflowContextInternal,
+    CloudifyWorkflowNode,
+    CloudifyWorkflowNodeInstance)
 from cloudify.utils import setup_logger
 from cloudify.test_utils import workflow_test
 from dp_plugin.workflows import (update_deployment_modification,
@@ -47,18 +49,23 @@ class MockCloudifyWorkflowContext(MockContext):
         self._mock_context_logger = setup_logger('mock-context-logger')
         handler = LocalCloudifyWorkflowContextHandler(self, storage)
         self.internal = CloudifyWorkflowContextInternal(self, handler)
-        self._nodes = storage.get_nodes()
-        self._instances = storage.get_node_instances()
+        raw_nodes = storage.get_nodes()
+        raw_node_instances = storage.get_node_instances()
+        self._nodes = dict(
+            (node.id, CloudifyWorkflowNode(self, node, self))
+            for node in raw_nodes)
+        self._node_instances = dict(
+            (instance.id, CloudifyWorkflowNodeInstance(
+                self, self._nodes[instance.node_id], instance,
+                self))
+            for instance in raw_node_instances)
 
     @property
     def logger(self):
         return self._mock_context_logger
 
     def get_node(self, node_id):
-        for _node in self._nodes:
-            if _node.get('id') ==  node_id:
-                return _node
-        return None
+        return self._nodes.get(node_id)
 
 class TestBurst(testtools.TestCase):
 
