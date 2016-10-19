@@ -117,8 +117,8 @@ def check_node_lock(_ctx, _node_id):
 def unlock_or_increment_lock(_ctx, _node_id, _dp_node_group_ids):
     client = get_rest_client()
     node_instances_list = client.node_instances.list(node_id=_node_id)
-    for node_instance_id in node_instances_list:
-        ni = client.node_instances.get(node_instance_id)
+    for node_instance in node_instances_list:
+        ni = client.node_instances.get(node_instance.id)
         node_instance_lock = \
             ni.runtime_properties.get('locked', 0)
         if node_instance_lock == len(_dp_node_group_ids):
@@ -126,7 +126,7 @@ def unlock_or_increment_lock(_ctx, _node_id, _dp_node_group_ids):
         else:
             ni.runtime_properties['locked'] = \
                 node_instance_lock + 1  # locked or still locked
-        client.node_instances.update(node_instance_id=ni.node_id,
+        client.node_instances.update(node_instance_id=ni.id,
                                      state=ni.state,
                                      runtime_properties=ni.runtime_properties,
                                      version=ni.version)
@@ -197,6 +197,10 @@ def assign_delta_to_nodes(_ctx,
                                                    assigned_node_in_fn,
                                                    constraint_node,
                                                    modification_data)
+                if assigned_node_in_fn > 0:
+                    unlock_or_increment_lock(_ctx,
+                                             constraint_id,
+                                             nodes_group.keys())
         most_recent_count = \
             get_most_recent_count(_ctx, node_id, modification_data)
         new_count = most_recent_count + assigned_node_in_fn
@@ -258,8 +262,11 @@ def build_modification_data_profile(_ctx, dp_node, delta):
                                   unassigned_delta,
                                   modification_data,
                                   dp_nodes_group)
+        if assigned_count > 0:
+            unlock_or_increment_lock(_ctx,
+                                     node_id_to_assign,
+                                     dp_node_group_ids)
         dp_node_group_ids.append(node_id_to_assign)
-        unlock_or_increment_lock(_ctx, node_id_to_assign, dp_node_group_ids)
         unassigned_delta = unassigned_delta - assigned_count
 
     _ctx.logger.debug('New modification_data: {0}'.format(modification_data))
