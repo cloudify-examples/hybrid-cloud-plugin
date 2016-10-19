@@ -15,7 +15,7 @@
 
 from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
-from cloudify import ctx
+# from cloudify import ctx
 from cloudify.manager import get_rest_client
 
 PLAN_RS = 'cloudify.dp.relationships.plans'
@@ -76,8 +76,8 @@ def generic_scale(_ctx, delta, modification, graph):
             modification.rollback()
         except:
             _ctx.logger.warn('Deployment modification rollback failed. The '
-                             'deployment model is most likely in some corrupted'
-                             ' state.'
+                             'deployment model is most likely in some '
+                             'corrupted state.'
                              '[modification_id={0}]'.format(modification.id))
             raise
         raise
@@ -86,8 +86,8 @@ def generic_scale(_ctx, delta, modification, graph):
             modification.finish()
         except:
             _ctx.logger.warn('Deployment modification finish failed. The '
-                             'deployment model is most likely in some corrupted'
-                             ' state.'
+                             'deployment model is most likely in some '
+                             'corrupted state.'
                              '[modification_id={0}]'.format(modification.id))
             raise
 
@@ -101,6 +101,7 @@ def build_dp_node_rule(_dp_node_id, _count, _dp_node_plan):
         }
     }
 
+
 def check_node_lock(_ctx, _node_id):
     _locked = []
     for node_instance in _ctx._node_instances.itervalues():
@@ -108,18 +109,24 @@ def check_node_lock(_ctx, _node_id):
             continue
         if node_instance._node_instance.runtime_properties.get('locked'):
             _locked.append(node_instance.id)
-    _ctx.logger.debug('These node instances have the lock {0}.'.format(_locked))
+    _ctx.logger.debug(
+        'These node instances have the lock {0}.'.format(_locked))
     return True if len(_locked) > 0 else False
+
 
 def unlock_or_increment_lock(_ctx, _node_id, _dp_node_group_ids):
     for node_instance in _ctx._node_instances.itervalues():
         if _node_id not in node_instance.node_id:
             continue
-        node_instance_lock = node_instance._node_instance.runtime_properties.get('locked', 0)
+        node_instance_lock = \
+            node_instance._node_instance.runtime_properties.get('locked', 0)
         if node_instance_lock == len(_dp_node_group_ids):
-            node_instance._node_instance.runtime_properties['locked'] = 0 # unlocked
+            node_instance._node_instance.runtime_properties['locked'] = \
+                0  # unlocked
         else:
-            node_instance._node_instance.runtime_properties['locked'] = node_instance_lock + 1 # locked or still locked
+            node_instance._node_instance.runtime_properties['locked'] = \
+                node_instance_lock + 1  # locked or still locked
+
 
 def get_list_of_dp_node_ids(_dp_node):
     # Build a list of PLAN_RS relationship types to consider scaling
@@ -128,14 +135,21 @@ def get_list_of_dp_node_ids(_dp_node):
 
 
 def get_most_recent_count(_ctx, _node_id, modification_data):
-    # This is required because unit testing is pretty much impossible due to inability to run a deployment update.
+    # This is required because unit testing is pretty much
+    # impossible due to inability to run a deployment update.
     if not modification_data.get(_node_id):
         _node = _ctx.get_node(_node_id)
         return int(_node.number_of_instances)
     return modification_data.get(_node_id).get('instances')
 
-def update_deployment_modification(_ctx, number_of_new_instances, node_to_update, modification_data):
-    current_instance_count = get_most_recent_count(_ctx, node_to_update.id, modification_data)
+
+def update_deployment_modification(_ctx,
+                                   number_of_new_instances,
+                                   node_to_update,
+                                   modification_data):
+
+    current_instance_count = \
+        get_most_recent_count(_ctx, node_to_update.id, modification_data)
     modification_data.update(
         {
             node_to_update.id: {
@@ -143,39 +157,52 @@ def update_deployment_modification(_ctx, number_of_new_instances, node_to_update
             }
         }
     )
-    _ctx.logger.debug('Updated modification_data: {0}'.format(modification_data))
+    _ctx.logger.debug(
+        'Updated modification_data: {0}'.format(modification_data))
     return modification_data
 
 
-def assign_delta_to_nodes(_ctx, node_id, unassigned_delta, modification_data, nodes_group):
+def assign_delta_to_nodes(_ctx,
+                          node_id,
+                          unassigned_delta,
+                          modification_data,
+                          nodes_group):
+
     assigned_node_in_fn = 0
     node = nodes_group.get(node_id)
     node_count = get_most_recent_count(_ctx, node_id, modification_data)
     if not check_node_lock(_ctx, node_id):
-        if nodes_group.get(node_id).get('capacity', float('inf')) == node_count:
+        if nodes_group.get(node_id).get('capacity', float('inf')) == \
+                node_count:
             return assigned_node_in_fn, modification_data, nodes_group
-        for constraint_id, constraint_threshold in node.get('constraints', {}).items():
+        for constraint_id, constraint_threshold in \
+                node.get('constraints', {}).items():
             constraint_node = _ctx.get_node(constraint_id)
-            constraint_node_current = get_most_recent_count(_ctx, constraint_id, modification_data)
+            constraint_node_current = \
+                get_most_recent_count(_ctx, constraint_id, modification_data)
             if constraint_node_current < constraint_threshold:
-                assigned_node_in_fn, modification_data, nodes_group = assign_delta_to_nodes(_ctx,
-                                                                                            constraint_id,
-                                                                                            unassigned_delta,
-                                                                                            modification_data,
-                                                                                            nodes_group)
+                assigned_node_in_fn, modification_data, nodes_group = \
+                    assign_delta_to_nodes(_ctx,
+                                          constraint_id,
+                                          unassigned_delta,
+                                          modification_data,
+                                          nodes_group)
                 unassigned_delta = unassigned_delta - assigned_node_in_fn
-                modification_data = update_deployment_modification(_ctx,
-                                                                   assigned_node_in_fn,
-                                                                   constraint_node,
-                                                                   modification_data)
-        most_recent_count = get_most_recent_count(_ctx, node_id, modification_data)
+                modification_data = \
+                    update_deployment_modification(_ctx,
+                                                   assigned_node_in_fn,
+                                                   constraint_node,
+                                                   modification_data)
+        most_recent_count = \
+            get_most_recent_count(_ctx, node_id, modification_data)
         new_count = most_recent_count + assigned_node_in_fn
         if node.get('capacity', float('inf')) >= new_count:
             _node_to_modify = _ctx.get_node(node_id)
-            modification_data = update_deployment_modification(_ctx,
-                                                               1,
-                                                               _node_to_modify,
-                                                               modification_data)
+            modification_data = \
+                update_deployment_modification(_ctx,
+                                               1,
+                                               _node_to_modify,
+                                               modification_data)
             return 1 + assigned_node_in_fn, modification_data, nodes_group
     return assigned_node_in_fn, modification_data, nodes_group
 
@@ -184,32 +211,39 @@ def build_dp_nodes_group(_ctx, _dp_node_group_ids, _dp_node_plans):
     _dp_nodes_group = {}
     for _dp_node_id in _dp_node_group_ids:
         _dp_node = _ctx.get_node(_dp_node_id)
-        new_dp_node_rule = build_dp_node_rule(_dp_node_id,
-                                              _dp_node.number_of_instances,
-                                              _dp_node_plans.get(_dp_node_id, {}))
+        new_dp_node_rule = \
+            build_dp_node_rule(_dp_node_id,
+                               _dp_node.number_of_instances,
+                               _dp_node_plans.get(_dp_node_id, {}))
         _dp_nodes_group.update(new_dp_node_rule)
     return _dp_nodes_group
 
 
 def build_modification_data_profile(_ctx, dp_node, delta):
 
-    # This is the deployment modification data that is eventually sent to the generic scale workflow.
+    # This is the deployment modification data that is eventually
+    # sent to the generic scale workflow.
     modification_data = {
-        dp_node.id: { 'instances': dp_node.number_of_instances + delta }
+        dp_node.id: {'instances': dp_node.number_of_instances + delta}
     }
-    _ctx.logger.debug('Initial Modification Data: {0}'.format(modification_data))
+    _ctx.logger.debug('Initial Modification Data: {0}'.format(
+        modification_data))
 
     # This is a list of the possible scaling/bursting nodes.
     dp_node_group_ids = get_list_of_dp_node_ids(dp_node)
     _ctx.logger.debug('Scaling Node: {0}. Possible targets: {1}'
                       .format(dp_node.id, dp_node_group_ids))
 
-    # This dictionary contains the scaling/bursting rules as registered in the dp node we are scaling/bursting.
+    # This dictionary contains the scaling/bursting rules as
+    # registered in the dp node we are scaling/bursting.
     dp_node_plans = dp_node.properties.get(PLANS)
     _ctx.logger.debug('DP Node Plans: {0}'.format(dp_node_plans))
 
-    # The dp_nodes_group is a dictionary that contains each possible scaling/bursting node, plus each of it's scaling/bursting rules.
-    dp_nodes_group = build_dp_nodes_group(_ctx, dp_node_group_ids, dp_node_plans)
+    # The dp_nodes_group is a dictionary that contains each
+    # possible scaling/bursting node, plus each of it's scaling/bursting rules.
+    dp_nodes_group = build_dp_nodes_group(_ctx,
+                                          dp_node_group_ids,
+                                          dp_node_plans)
 
     unassigned_delta = delta
     while unassigned_delta > 0:
@@ -254,11 +288,10 @@ def scale_or_burst(ctx, scalable_entity_name, delta, **_):
 
 
 @workflow
-def heal_dp(
-        ctx,
-        node_instance_id,
-        diagnose_value='Not provided',
-        **kwargs):
+def heal_dp(ctx,
+            node_instance_id,
+            diagnose_value='Not provided',
+            **kwargs):
 
     ctx.logger.info("Starting 'dp_heal' workflow on {0}, Diagnosis: {1}"
                     .format(node_instance_id, diagnose_value))
@@ -268,9 +301,12 @@ def heal_dp(
     )
 
     subgraph_node_instances = failing_node_host.get_contained_subgraph()
-    failing_dp_node_managing_host_id = failing_node_host.runtime_properties[MANAGING]
-    failing_dp_node_managing_host = ctx.get_node_instance(failing_dp_node_managing_host_id)
-    subgraph_node_instances.update(failing_dp_node_managing_host.get_contained_subgraph())
+    failing_dp_node_managing_host_id = \
+        failing_node_host.runtime_properties[MANAGING]
+    failing_dp_node_managing_host = \
+        ctx.get_node_instance(failing_dp_node_managing_host_id)
+    subgraph_node_instances.update(
+        failing_dp_node_managing_host.get_contained_subgraph())
     intact_nodes = set(ctx.node_instances) - subgraph_node_instances
     graph = ctx.graph_mode()
     lifecycle.reinstall_node_instances(

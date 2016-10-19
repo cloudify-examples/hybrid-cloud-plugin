@@ -15,8 +15,7 @@
 
 from cloudify.decorators import operation
 from cloudify import ctx
-from cloudify.exceptions import NonRecoverableError, RecoverableError
-from cloudify.workflows.local import StorageConflictError
+from cloudify.exceptions import NonRecoverableError
 from cloudify_rest_client.exceptions import CloudifyClientError
 
 PLANS = 'deployment_plans'
@@ -30,17 +29,21 @@ def get_endpoint():
         return ctx._endpoint.storage
     return ctx._endpoint
 
+
 def get_node(id):
     endpoint = get_endpoint()
     return endpoint.get_node_instance(id)
+
 
 def get_node_instance(id):
     endpoint = get_endpoint()
     return endpoint.get_node_instance(id)
 
+
 def update_node_instance(node_instance):
     endpoint = get_endpoint()
     return endpoint.update_node_instance(node_instance)
+
 
 def get_burst_plan(plans):
     burst_after = ''
@@ -48,6 +51,7 @@ def get_burst_plan(plans):
         if ctx.target.node.name in plan_name:
             burst_after = plan.get(BA)
     return burst_after
+
 
 def get_agent_config(ctx_node_properties):
     agent_config = ctx_node_properties.get('agent_config')
@@ -70,7 +74,8 @@ def create(args, **_):
         if not target_node_instance.runtime_properties.get(MANAGED_BY):
             try:
                 ctx.instance.runtime_properties[MANAGING] = target_id
-                target_node_instance.runtime_properties[MANAGED_BY] = ctx.instance.id
+                target_node_instance.runtime_properties[MANAGED_BY] = \
+                    ctx.instance.id
                 update_node_instance(target_node_instance)
             except:
                 ctx.logger.info('did not succeed')
@@ -79,7 +84,8 @@ def create(args, **_):
 
     if not target_node_instance:
         raise NonRecoverableError('Nothing to create')
-    ctx.logger.info('{0} paired with {1}'.format(ctx.instance.id, target_node_instance.id))
+    ctx.logger.info(
+        '{0} paired with {1}'.format(ctx.instance.id, target_node_instance.id))
 
 
 @operation
@@ -106,17 +112,20 @@ def preconfigure_plan(args, **_):
         try:
             ctx.source.instance.runtime_properties[target_id] = dp_instance
             ctx.source.instance.runtime_properties['ip'] = target_ip
-            ctx.source.instance.runtime_properties['cloudify_agent'] = agent_config
-        except CloudifyClientError as e:
+            ctx.source.instance.runtime_properties['cloudify_agent'] = \
+                agent_config
+        except CloudifyClientError:
             del ctx.target.instance.runtime_properties[target_id]
             del ctx.target.instance.runtime_properties['ip']
             del ctx.target.instance.runtime_properties['cloudify_agent']
             return ctx.operation.retry('Unable to Pair.')
 
+
 @operation
 def unlink_plan(args, **_):
     del ctx.source.instance.runtime_properties[ctx.target.instance.id]
     del ctx.target.instance.runtime_properties[MANAGED_BY]
+
 
 @operation
 def delete(args, **_):
