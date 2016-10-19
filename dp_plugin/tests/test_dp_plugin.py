@@ -99,7 +99,8 @@ class TestBurst(testtools.TestCase):
                     'count': int(this_dp_node.number_of_instances),
                     'capacity': dp_node_plans.get(
                         this_dp_node.id, {}).get('capacity', {}),
-                    'constraints': dp_node_plans.get(this_dp_node.id, {}).get('constraints', {})
+                    'constraints': dp_node_plans.get(
+                        this_dp_node.id, {}).get('constraints', {})
                 }
             })
         return dp_nodes_group
