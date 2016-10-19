@@ -177,7 +177,6 @@ def assign_delta_to_nodes(_ctx, node_id, unassigned_delta, modification_data, no
                                                                _node_to_modify,
                                                                modification_data)
             return 1 + assigned_node_in_fn, modification_data, nodes_group
-    unlock_or_increment_lock(_ctx, node_id, nodes_group)
     return assigned_node_in_fn, modification_data, nodes_group
 
 
@@ -222,6 +221,7 @@ def build_modification_data_profile(_ctx, dp_node, delta):
                                   modification_data,
                                   dp_nodes_group)
         dp_node_group_ids.append(node_id_to_assign)
+        unlock_or_increment_lock(_ctx, node_id_to_assign, dp_node_group_ids)
         unassigned_delta = unassigned_delta - assigned_count
 
     _ctx.logger.debug('New modification_data: {0}'.format(modification_data))
