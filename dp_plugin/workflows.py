@@ -115,20 +115,19 @@ def check_node_lock(_ctx, _node_id):
 
 
 def unlock_or_increment_lock(_ctx, _node_id, _dp_node_group_ids):
-    for node_instance in _ctx._node_instances.itervalues():
-        if _node_id not in node_instance.node_id:
-            continue
+    client = get_rest_client()
+    node_instances_list = client.node_instances.list(node_id=_node_id)
+    for node_instance_id in node_instances_list:
+        ni = client.node_instances.get(node_instance_id)
         node_instance_lock = \
-            node_instance._node_instance.runtime_properties.get('locked', 0)
+            ni.runtime_properties.get('locked', 0)
         if node_instance_lock == len(_dp_node_group_ids):
-            node_instance._node_instance.runtime_properties['locked'] = \
-                0  # unlocked
+            ni.runtime_properties['locked'] = 0  # unlocked
         else:
-            node_instance._node_instance.runtime_properties['locked'] = \
+            ni.runtime_properties['locked'] = \
                 node_instance_lock + 1  # locked or still locked
-        client = get_rest_client()
-        ni = node_instance._node_instance
-        client.node_instances.update(node_instance_id=node_instance.node_id,
+        client.node_instances.update(node_instance_id=ni.node_id,
+                                     state=ni.state,
                                      runtime_properties=ni.runtime_properties,
                                      version=ni.version)
 
