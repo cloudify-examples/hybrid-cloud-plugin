@@ -36,6 +36,12 @@ def get_node_instance(node_instance_id):
     return rest.node_instances.get(node_instance_id=node_instance_id)
 
 
+def get_endpoint(_ctx):
+    if hasattr(_ctx._endpoint, 'storage'):
+        return _ctx._endpoint.storage
+    return _ctx._endpoint
+
+
 def generic_scale(_ctx, delta, modification, graph):
 
     try:
@@ -126,6 +132,8 @@ def unlock_or_increment_lock(_ctx, _node_id, _dp_node_group_ids):
         else:
             node_instance._node_instance.runtime_properties['locked'] = \
                 node_instance_lock + 1  # locked or still locked
+        endpoint = get_endpoint(_ctx)
+        endpoint.update_node_instance(node_instance._node_instance)
 
 
 def get_list_of_dp_node_ids(_dp_node):

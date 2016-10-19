@@ -42,6 +42,7 @@ class MockCloudifyWorkflowContext(MockContext):
     def __init__(self, storage):
         self._context = {}
         self.local = True
+        self._endpoint = storage
         self._local_task_thread_pool_size = 1
         self._task_retry_interval = 1
         self._task_retries = 1
@@ -98,8 +99,7 @@ class TestBurst(testtools.TestCase):
                     'count': int(this_dp_node.number_of_instances),
                     'capacity': dp_node_plans.get(
                         this_dp_node.id, {}).get('capacity', {}),
-                    'constraints': dp_node_plans.get(
-                        this_dp_node.id, {}).get('constraints', {})
+                    'constraints': dp_node_plans.get(this_dp_node.id, {}).get('constraints', {})
                 }
             })
         return dp_nodes_group
@@ -176,6 +176,7 @@ class TestBurst(testtools.TestCase):
                 return_value=['cloud_1_compute',
                               'cloud_2_compute',
                               'cloud_3_compute'])
+    @mock.patch('dp_plugin.workflows.unlock_or_increment_lock')
     def test_build_modification_data_profile(self, cfy_local, *_):
         dp_managing_node = cfy_local.storage.get_node('dp_compute')
         ctx = self.get_mock_workflow_context(cfy_local.storage)
