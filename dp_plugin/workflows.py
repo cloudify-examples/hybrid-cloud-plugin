@@ -15,7 +15,6 @@
 
 from cloudify.decorators import workflow
 from cloudify.plugins import lifecycle
-# from cloudify import ctx
 from cloudify.manager import get_rest_client
 
 PLAN_RS = 'cloudify.dp.relationships.plans'
@@ -104,10 +103,8 @@ def build_dp_node_rule(_dp_node_id, _count, _dp_node_plan):
 
 def check_node_lock(_ctx, _node_id):
     _locked = []
-    for node_instance in _ctx._node_instances.itervalues():
-        if _node_id not in node_instance.node_id:
-            continue
-        if node_instance._node_instance.runtime_properties.get('locked'):
+    for node_instance in get_list_of_node_instances(_ctx, _node_id):
+        if node_instance.runtime_properties.get('locked'):
             _locked.append(node_instance.id)
     _ctx.logger.debug(
         'These node instances have the lock {0}.'.format(_locked))
@@ -117,7 +114,7 @@ def check_node_lock(_ctx, _node_id):
 def unlock_or_increment_lock(_ctx, _node_id, _dp_node_group_ids):
     client = get_rest_client()
     node_instances_list = client.node_instances.list(node_id=_node_id)
-    for node_instance in node_instances_list:
+    for node_instance in get_list_of_node_instances(_ctx, _node_id):
         ni = client.node_instances.get(node_instance.id)
         node_instance_lock = \
             ni.runtime_properties.get('locked', 0)
@@ -151,16 +148,16 @@ def update_deployment_modification(_ctx,
                                    number_of_new_instances,
                                    node_to_update,
                                    modification_data):
-
-    current_instance_count = \
-        get_most_recent_count(_ctx, node_to_update.id, modification_data)
-    modification_data.update(
-        {
-            node_to_update.id: {
-                'instances': current_instance_count + number_of_new_instances
+    if number_of_new_instances > 0:
+        current_instance_count = \
+            get_most_recent_count(_ctx, node_to_update.id, modification_data)
+        modification_data.update(
+            {
+                node_to_update.id: {
+                    'instances': current_instance_count + number_of_new_instances
+                }
             }
-        }
-    )
+        )
     _ctx.logger.debug(
         'Updated modification_data: {0}'.format(modification_data))
     return modification_data
@@ -192,12 +189,12 @@ def assign_delta_to_nodes(_ctx,
                                           modification_data,
                                           nodes_group)
                 unassigned_delta = unassigned_delta - assigned_node_in_fn
-                modification_data = \
-                    update_deployment_modification(_ctx,
-                                                   assigned_node_in_fn,
-                                                   constraint_node,
-                                                   modification_data)
                 if assigned_node_in_fn > 0:
+                    modification_data = \
+                        update_deployment_modification(_ctx,
+                                                       assigned_node_in_fn,
+                                                       constraint_node,
+                                                       modification_data)
                     unlock_or_increment_lock(_ctx,
                                              constraint_id,
                                              nodes_group.keys())

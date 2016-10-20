@@ -120,8 +120,10 @@ class TestBurst(testtools.TestCase):
         self.assertEqual(number_of_old_instances + number_of_new_instances,
                          modification_data.get('dp_compute').get('instances'))
 
+    @mock.patch('dp_plugin.workflows.check_node_lock',
+                return_value=False)
     @workflow_test(blueprint_path=burst_blueprint_path)
-    def test_assign_delta_to_nodes(self, cfy_local):
+    def test_assign_delta_to_nodes(self, cfy_local, *_):
         dp_managing_node = cfy_local.storage.get_node('dp_compute')
         dp_node_group_ids = \
             self.get_dp_node_group_ids(dp_managing_node['relationships'])
@@ -178,6 +180,8 @@ class TestBurst(testtools.TestCase):
                               'cloud_2_compute',
                               'cloud_3_compute'])
     @mock.patch('dp_plugin.workflows.unlock_or_increment_lock')
+    @mock.patch('dp_plugin.workflows.check_node_lock',
+                return_value=False)
     def test_build_modification_data_profile(self, cfy_local, *_):
         dp_managing_node = cfy_local.storage.get_node('dp_compute')
         ctx = self.get_mock_workflow_context(cfy_local.storage)
