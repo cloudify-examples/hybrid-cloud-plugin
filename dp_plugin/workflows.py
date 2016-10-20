@@ -103,7 +103,9 @@ def build_dp_node_rule(_dp_node_id, _count, _dp_node_plan):
 
 def check_node_lock(_ctx, _node_id):
     _locked = []
-    for node_instance in get_list_of_node_instances(_ctx, _node_id):
+    client = get_rest_client()
+    node_instances_list = client.node_instances.list(node_id=_node_id)
+    for node_instance in node_instances_list:
         if node_instance.runtime_properties.get('locked'):
             _locked.append(node_instance.id)
     _ctx.logger.debug(
