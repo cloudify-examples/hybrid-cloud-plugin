@@ -114,7 +114,7 @@ def check_node_lock(_ctx, _node_id):
 def unlock_or_increment_lock(_ctx, _node_id, _dp_node_group_ids):
     client = get_rest_client()
     node_instances_list = client.node_instances.list(node_id=_node_id)
-    for node_instance in get_list_of_node_instances(_ctx, _node_id):
+    for node_instance in node_instances_list:
         ni = client.node_instances.get(node_instance.id)
         node_instance_lock = \
             ni.runtime_properties.get('locked', 0)
@@ -152,12 +152,9 @@ def update_deployment_modification(_ctx,
         current_instance_count = \
             get_most_recent_count(_ctx, node_to_update.id, modification_data)
         modification_data.update(
-            {
-                node_to_update.id: {
-                    'instances': current_instance_count + number_of_new_instances
-                }
-            }
-        )
+            {node_to_update.id:
+                {'instances':
+                    current_instance_count + number_of_new_instances}})
     _ctx.logger.debug(
         'Updated modification_data: {0}'.format(modification_data))
     return modification_data
