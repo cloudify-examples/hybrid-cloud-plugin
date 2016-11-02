@@ -37,6 +37,10 @@ PLAN_RS = 'cloudify.dp.relationships.plans'
 PLANS = 'deployment_plans'
 
 
+def mfn(*_):
+    pass
+
+
 class MockCloudifyWorkflowContext(MockContext):
 
     def __init__(self, storage):
@@ -108,15 +112,22 @@ class TestBurst(testtools.TestCase):
     @workflow_test(blueprint_path=burst_blueprint_path)
     def test_update_deployment_modification(self, cfy_local):
         dp_managing_node = cfy_local.storage.get_node('dp_compute')
+        dp_node_group_ids = \
+            self.get_dp_node_group_ids(dp_managing_node['relationships'])
+        group = {}
+        for gid in dp_node_group_ids:
+            group.update({ gid: ''})
         number_of_old_instances = dp_managing_node.number_of_instances
         ctx = self.get_mock_workflow_context(cfy_local.storage)
         number_of_new_instances = 2
         modification_data = {}
-        modification_data = \
-            update_deployment_modification(ctx,
-                                           number_of_new_instances,
-                                           dp_managing_node,
-                                           modification_data)
+        with mock.patch('dp_plugin.workflows.unlock_or_increment_lock') as mfn:
+            modification_data = \
+                update_deployment_modification(ctx,
+                                               number_of_new_instances,
+                                               dp_managing_node,
+                                               modification_data,
+                                               group)
         self.assertEqual(number_of_old_instances + number_of_new_instances,
                          modification_data.get('dp_compute').get('instances'))
 
@@ -142,28 +153,31 @@ class TestBurst(testtools.TestCase):
             }
         }
 
-        while number_of_new_instances > 0:
-            _dp_test_node_id = dp_node_group_ids.pop(0)
-            _dp_test_node = cfy_local.storage.get_node(_dp_test_node_id)
-            _assigned_node_in_fn, _modification_data, dp_nodes_group = \
-                assign_delta_to_nodes(ctx,
-                                      _dp_test_node.id,
-                                      number_of_new_instances,
-                                      _modification_data,
-                                      dp_nodes_group)
-            number_of_new_instances = \
-                number_of_new_instances - _assigned_node_in_fn
-            dp_node_group_ids.insert(len(dp_node_group_ids),
-                                     _dp_test_node_id)
+        with mock.patch('dp_plugin.workflows.unlock_or_increment_lock') as mfn:
 
-        self.assertEqual(_modification_data.get(
-            'cloud_3_compute').get('instances'),
-                         dp_nodes_group.get(
-                             'cloud_3_compute').get('capacity'))
-        self.assertEqual(_modification_data.get(
-            'cloud_2_compute').get('instances'),
-                         dp_nodes_group.get(
-                             'cloud_2_compute').get('capacity'))
+
+            while number_of_new_instances > 0:
+                _dp_test_node_id = dp_node_group_ids.pop(0)
+                _dp_test_node = cfy_local.storage.get_node(_dp_test_node_id)
+                _assigned_node_in_fn, _modification_data, dp_nodes_group = \
+                    assign_delta_to_nodes(ctx,
+                                          _dp_test_node.id,
+                                          number_of_new_instances,
+                                          _modification_data,
+                                          dp_nodes_group)
+                number_of_new_instances = \
+                    number_of_new_instances - _assigned_node_in_fn
+                dp_node_group_ids.insert(len(dp_node_group_ids),
+                                         _dp_test_node_id)
+
+            self.assertEqual(_modification_data.get(
+                'cloud_3_compute').get('instances'),
+                             dp_nodes_group.get(
+                                 'cloud_3_compute').get('capacity'))
+            self.assertEqual(_modification_data.get(
+                'cloud_2_compute').get('instances'),
+                             dp_nodes_group.get(
+                                 'cloud_2_compute').get('capacity'))
 
         counted_new_instances = 0
         for key, value in _modification_data.items():
@@ -179,16 +193,18 @@ class TestBurst(testtools.TestCase):
                 return_value=['cloud_1_compute',
                               'cloud_2_compute',
                               'cloud_3_compute'])
-    @mock.patch('dp_plugin.workflows.unlock_or_increment_lock')
+
     @mock.patch('dp_plugin.workflows.check_node_lock',
+                side_effect=mfn,
                 return_value=False)
     def test_build_modification_data_profile(self, cfy_local, *_):
         dp_managing_node = cfy_local.storage.get_node('dp_compute')
         ctx = self.get_mock_workflow_context(cfy_local.storage)
         test_round = 300
-        modification_data = build_modification_data_profile(ctx,
-                                                            dp_managing_node,
-                                                            test_round)
+        with mock.patch('dp_plugin.workflows.unlock_or_increment_lock') as mfn:
+            modification_data = build_modification_data_profile(ctx,
+                                                                dp_managing_node,
+                                                                test_round)
         counted_new_instances = 0
         for key, value in modification_data.items():
             if dp_managing_node.id not in key:

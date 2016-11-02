@@ -1,0 +1,196 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.4/types.yaml
+  - https://raw.githubusercontent.com/cloudify-examples/mixed-iaas-plugin/master/plugin.yaml
+  - http://www.getcloudify.org/spec/aws-plugin/1.4.3/plugin.yaml
+  - https://raw.githubusercontent.com/cloudify-cosmo/cloudify-openstack-plugin/CFY-6033-Go-Away-Management-Network-Name/plugin.yaml
+
+inputs:
+
+  keystone_username:
+    default: ''
+    type: string
+
+  keystone_password:
+    default: ''
+    type: string
+
+  keystone_tenant_name:
+    default: ''
+    type: string
+
+  keystone_url:
+    default: ''
+    type: string
+
+  region:
+    default: ''
+    type: string
+
+  nova_url:
+    default: ''
+    type: string
+
+  neutron_url:
+    default: ''
+    type: string
+
+  openstack_configuration:
+    default:
+      username: { get_input: keystone_username }
+      password: { get_input: keystone_password }
+      tenant_name: { get_input: keystone_tenant_name }
+      auth_url: { get_input: keystone_url }
+      region: { get_input: region }
+      nova_url: { get_input: nova_url }
+      neutron_url: { get_input: neutron_url }
+
+  openstack_instance_agent_username:
+    default: ubuntu
+
+  openstack_instance_agent_local_path_to_key_file:
+    default: ~/.ssh/openstack-instance-vm.pem
+
+  openstack_instance_agent_port:
+    default: 22
+
+  openstack_instance_vm_image_id:
+    default: 6c3047c6-17b1-4aaf-a657-9229bb481e50
+
+  openstack_instance_vm_flavor_id:
+    default: 05a9e6d1-d29f-4e98-9eab-51c9a6beed44
+
+  openstack_management_network_name:
+    default: example-openstack-private-network-name
+
+  aws_access_key_id:
+    description: YOUR AWS ACCESS KEY ID
+
+  aws_secret_access_key:
+    description: YOUR AWS SECRET ACCESS KEY
+
+  ec2_region_name:
+    default: us-east-1
+
+  ec2_region_endpoint:
+    default: ec2.us-east-1.amazonaws.com
+
+  aws_configuration:
+    default:
+      aws_access_key_id: { get_input: aws_access_key_id }
+      aws_secret_access_key: { get_input: aws_secret_access_key }
+      ec2_region_name: { get_input: ec2_region_name }
+      ec2_region_endpoint: { get_input: ec2_region_endpoint }
+
+  aws_instance_vm_agent_username:
+    default: ubuntu
+
+  aws_instance_vm_agent_local_path_to_key_file:
+    default: ~/.ssh/aws-instance-vm.pem
+
+  aws_instance_vm_agent_port:
+    default: 22
+
+  aws_instance_vm_image_id:
+    default: ami-2d39803a
+
+  aws_instance_vm_instance_type:
+    default: m3.medium
+
+  aws_instance_vm_subnet_id:
+    description: The subnet
+
+  aws_availability_zone:
+    default: us-east-1e
+
+  aws_instance_vm_security_groups:
+    description: a list of group ids
+
+node_templates:
+
+  app:
+    type: cloudify.nodes.Root
+    relationships:
+      - target: dp_compute
+        type: cloudify.relationships.contained_in
+
+  dp_compute:
+    type: cloudify.nodes.DeploymentPlan
+    capabilities:
+      scalable:
+        properties:
+          default_instances: 2
+    properties:
+      deployment_plans:
+        openstack_instance:
+          capacity: 4
+          constraints:
+            aws_instance: 3
+        aws_instance:
+          capacity: 4
+          constraints: {}
+      agent_config:
+        install_method: none
+    relationships:
+      - target: openstack_instance
+        type: cloudify.dp.relationships.plans
+      - target: aws_instance
+        type: cloudify.dp.relationships.plans
+
+  openstack_key:
+    type: cloudify.openstack.nodes.KeyPair
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      private_key_path: { get_input: openstack_instance_agent_local_path_to_key_file }
+
+  openstack_instance:
+    type: cloudify.openstack.nodes.Server
+    capabilities:
+      scalable:
+        properties:
+          default_instances: 1
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      agent_config:
+        install_method: none
+        user: { get_input: openstack_instance_agent_username }
+        key: { get_input: openstack_instance_agent_local_path_to_key_file }
+        port: { get_input: openstack_instance_agent_port }
+      server:
+        image: { get_input: openstack_instance_vm_image_id }
+        flavor: { get_input: openstack_instance_vm_flavor_id }
+      management_network_name: { get_input: openstack_management_network_name }
+    relationships:
+      - target: openstack_key
+        type: cloudify.openstack.server_connected_to_keypair
+
+  aws_key:
+    type: cloudify.aws.nodes.KeyPair
+    properties:
+      aws_config: { get_input: aws_configuration }
+      private_key_path: { get_input: aws_instance_vm_agent_local_path_to_key_file }
+
+  aws_instance:
+    type: cloudify.aws.nodes.Instance
+    capabilities:
+      scalable:
+        properties:
+          default_instances: 1
+    properties:
+      aws_config: { get_input: aws_configuration }
+      agent_config:
+        install_method: none
+        user: { get_input: aws_instance_vm_agent_username }
+        key: { get_input: aws_instance_vm_agent_local_path_to_key_file }
+        port: { get_input: aws_instance_vm_agent_port }
+      name: Kubernetes Node VM
+      image_id: { get_input: aws_instance_vm_image_id }
+      instance_type: { get_input: aws_instance_vm_instance_type }
+      parameters:
+        subnet_id: { get_input: aws_instance_vm_subnet_id }
+        placement: { get_input: aws_availability_zone }
+        security_group_ids: { get_input: aws_instance_vm_security_groups }
+    relationships:
+      - type: cloudify.aws.relationships.instance_connected_to_keypair
+        target: aws_key
