@@ -167,7 +167,7 @@ def assign_delta_to_nodes(_ctx,
                           unassigned_delta,
                           modification_data,
                           nodes_group):
-
+    _ctx.logger.info('Node to assign: {0}'.format(node_id))
     assigned_node_in_fn = 0
     node = nodes_group.get(node_id)
     node_count = get_most_recent_count(_ctx, node_id, modification_data)
@@ -200,7 +200,7 @@ def assign_delta_to_nodes(_ctx,
         most_recent_count = \
             get_most_recent_count(_ctx, node_id, modification_data)
         new_count = most_recent_count + assigned_node_in_fn
-        if node.get('capacity', float('inf')) >= new_count:
+        if node.get('capacity', float('inf')) >= new_count and unassigned_delta > 0:
             _node_to_modify = _ctx.get_node(node_id)
             modification_data = \
                 update_deployment_modification(_ctx,
