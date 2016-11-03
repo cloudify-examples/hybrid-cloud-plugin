@@ -103,15 +103,15 @@ def burst_up(ctx, scalable_entity_name, delta):
 
         # Update the lock on everything first.
         instances_of_node_with_lock = lock_or_unlock_node(instances_of_node)
-        for ni in instances_of_node_with_lock:
-            # ni = client.node_instances.get(node_instance.id)
+        for node_instance in instances_of_node_with_lock:
+            ni = client.node_instances.get(node_instance.id)
+            new_runtime_props = node_instance.runtime_properties
             ctx.logger.debug('Changing lock on node instance: {0} {1}'.format(
                 ni.id, ni.runtime_properties.get('locked')))
             ctx.logger.debug('\nTHE WHOLE THING: {0}'.format(ni))
             client.node_instances.update(node_instance_id=ni.id,
                                          state=ni.state,
-                                         runtime_properties=ni.
-                                         runtime_properties,
+                                         runtime_properties=new_runtime_props,
                                          version=ni.version)
 
         # If the node is locked,
