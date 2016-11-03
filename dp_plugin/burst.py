@@ -31,6 +31,7 @@ def get_mixed_node_target_ids(_mixed_node):
 
 
 def lock_or_unlock_node(_instances_of_node):
+    # This is in order to scale node targets in order of attempts.
     _new_instances_of_node = []
     for ni in _instances_of_node:
         node_instance_lock = \
@@ -84,6 +85,23 @@ def burst_down(ctx,
                 'but there are no nodes to assign them to.')
 
         target_node_id = mixed_target_node_ids.pop(0)
+
+        mixed_node_count = \
+            get_latest_node_instance_count(ctx,
+                                           mixed_node_id,
+                                           modification_data)
+        target_node_count = get_latest_node_instance_count(ctx,
+                                                           target_node_id,
+                                                           modification_data)
+
+        if mixed_node_count <= 0:
+            break
+
+        # We wont be able to scale to zero if there is not at least one
+        # Node instance of this target.
+        if target_node_count <= 0:
+            continue
+
         instances_of_node = client.node_instances.list(node_id=target_node_id)
 
         # Update the lock on everything first.
@@ -98,13 +116,6 @@ def burst_down(ctx,
                                          runtime_properties=new_runtime_props,
                                          version=ni.version)
 
-        mixed_node_count = \
-            get_latest_node_instance_count(ctx,
-                                           mixed_node_id,
-                                           modification_data)
-        target_node_count = get_latest_node_instance_count(ctx,
-                                                           target_node_id,
-                                                           modification_data)
 
         # If the lock is equal to 1, it means this node most recently locked.
         # This means it was the last node to burst up, so it should be
@@ -112,7 +123,9 @@ def burst_down(ctx,
         for instance_of_node in \
                 client.node_instances.list(node_id=target_node_id):
             if not instance_of_node.runtime_properties.get('locked') == 1:
+                mixed_target_node_ids.append(target_node_id)
                 continue
+
         modification_data.update(
             {
                 mixed_node_id: {INSTANCES: mixed_node_count - 1},
