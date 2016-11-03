@@ -60,7 +60,8 @@ def get_latest_node_instance_count(_ctx, _node_id, _modification_data):
 
 def check_target_is_constrained(_ctx, _target_node_constraints):
     if _target_node_constraints:
-        for constraining_node_id, constraint in _target_node_constraints:
+        for constraining_node_id, constraint in \
+                _target_node_constraints.items():
             plan_node = _ctx.get_node(constraining_node_id)
             if constraint > plan_node.number_of_instances:
                 return True
