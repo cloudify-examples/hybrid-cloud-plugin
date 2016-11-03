@@ -17,6 +17,10 @@ from cloudify.manager import get_rest_client
 
 TARGETS_RS = 'cloudify.dp.relationships.plans'
 INSTANCES = 'instances'
+PLAN_RS = 'cloudify.dp.relationships.plans'
+PLANS = 'deployment_plans'
+BA = 'burst_after'
+MANAGING = 'managing'
 
 
 def get_mixed_node_target_ids(_mixed_node):
@@ -92,7 +96,7 @@ def burst_up(ctx, scalable_entity_name, delta):
     ctx.logger.debug('Mixed Targets: {0}'.format(mixed_target_node_ids))
 
     # Get the mixed iaas nodes plan for the possible targets
-    plans = mixed_node.properties.get('PLANS')
+    plans = mixed_node.properties.get(PLANS)
     ctx.logger.debug('Plans: {0}'.format(plans))
 
     # Assign delta while we haven't assigned it all
