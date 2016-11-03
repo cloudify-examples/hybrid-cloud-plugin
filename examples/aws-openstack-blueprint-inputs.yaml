@@ -1,0 +1,13 @@
+keystone_password: ''
+keystone_tenant_name: ''
+keystone_url: ''
+keystone_username: ''
+region: RegionOne
+
+openstack_instance_vm_image_id: XXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+openstack_instance_vm_flavor_id: XXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+
+aws_secret_access_key: ''
+aws_access_key_id: ''
+aws_instance_vm_subnet_id: 'subnet-1234abcd'
+aws_instance_vm_security_groups: ['sg-1234abcd']
