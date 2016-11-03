@@ -39,7 +39,7 @@ def lock_or_unlock_node(_instances_of_node):
     return _new_instances_of_node
 
 
-def check_if_node_is_locked(_instances_of_node=[]):
+def check_if_node_is_locked(_instances_of_node):
     locked_nodes = []
     for _ni in _instances_of_node:
         if _ni.runtime_properties.get('locked'):
@@ -54,7 +54,7 @@ def get_latest_node_instance_count(_ctx, _node_id, _modification_data):
     return node.number_of_instances
 
 
-def check_target_is_constrained(_ctx, _target_node_constraints=[]):
+def check_target_is_constrained(_ctx, _target_node_constraints):
     if _target_node_constraints:
         for constraining_node_id, constraint in _target_node_constraints:
             plan_node = _ctx.get_node(constraining_node_id)
@@ -84,7 +84,8 @@ def burst_up(ctx, scalable_entity_name, delta):
     modification_data = {
         mixed_node.id: {INSTANCES: mixed_node.number_of_instances}
     }
-    ctx.logger.debug('Initial Modification Data: {0}'.format(modification_data))
+    ctx.logger.debug(
+        'Initial Modification Data: {0}'.format(modification_data))
 
     # Get a list of possible targets
     mixed_target_node_ids = get_mixed_node_target_ids(mixed_node)
@@ -107,26 +108,33 @@ def burst_up(ctx, scalable_entity_name, delta):
                 ni.id, ni.runtime_properties.get('locked')))
             client.node_instances.update(node_instance_id=ni.id,
                                          state=ni.state,
-                                         runtime_properties=ni.runtime_properties,
+                                         runtime_properties=ni.
+                                         runtime_properties,
                                          version=ni.version)
 
-        # If the node is locked, skip it for this iteration of the the while loop.
+        # If the node is locked,
+        # skip it for this iteration of the the while loop.
         if check_if_node_is_locked(instances_of_node):
             ctx.logger.debug('Node is locked: {0}'.format(target_node_id))
             mixed_target_node_ids.append(target_node_id)
             continue
 
         target_node_plan = plans.get(target_node_id)
-        target_node_count = get_latest_node_instance_count(ctx, target_node_id, modification_data)
+        target_node_count = get_latest_node_instance_count(ctx,
+                                                           target_node_id,
+                                                           modification_data)
 
-        # If the node is at capacity, skip it. No more scaling or bursting this node.
+        # If the node is at capacity, skip it.
+        # No more scaling or bursting this node.
         # Notice we do not do "mixed_target_node_ids.append(target_node_id)"
         if target_node_count >= target_node_plan.get('capacity', float('inf')):
-            ctx.logger.debug('Node is over capacity: {0}'.format(target_node_id))
+            ctx.logger.debug(
+                'Node is over capacity: {0}'.format(target_node_id))
             continue
 
         # If the node is constrained by other nodes, skip it.
-        elif check_target_is_constrained(ctx, target_node_id, target_node_plan.get('constraints')):
+        elif check_target_is_constrained(ctx,
+                                         target_node_plan.get('constraints')):
             ctx.logger.debug('Node is constrained: {0}'.format(target_node_id))
             mixed_target_node_ids.append(target_node_id)
             continue
@@ -134,19 +142,24 @@ def burst_up(ctx, scalable_entity_name, delta):
         # At this stage we add the node to the deployment_modification
         # only if it is not locked, over-capacity, or constrained.
         ctx.logger.debug('Adding node to plan: {0}'.format(target_node_id))
-        mixed_node_count = get_latest_node_instance_count(ctx, scalable_entity_name, modification_data)
+        mixed_node_count = \
+            get_latest_node_instance_count(ctx,
+                                           scalable_entity_name,
+                                           modification_data)
         modification_data.update(
             {
-                scalable_entity_name: { INSTANCES: mixed_node_count + 1 },
+                scalable_entity_name: {INSTANCES: mixed_node_count + 1},
                 target_node_id: {INSTANCES: target_node_count + 1}
             }
         )
-        ctx.logger.debug('Updated Modification Data {0}'.format(modification_data))
+        ctx.logger.debug(
+            'Updated Modification Data {0}'.format(modification_data))
 
         # Decrement the delta so that we know how many instances we have added
         delta_copy -= 1
 
-        # We add the node back to the list, so that it can be incremented again if necessary.
+        # We add the node back to the list,
+        # so that it can be incremented again if necessary.
         mixed_target_node_ids.append(target_node_id)
 
     return modification_data

@@ -45,9 +45,11 @@ def scale_or_burst(ctx, scalable_entity_name, delta, **_):
     # # It will scale on target of its PLAN_RS relationships
     # dp_node = ctx.get_node(scalable_entity_name)
     # if not dp_node:
-    #     raise ValueError("Node {0} doesn't exist".format(scalable_entity_name))
+    #     raise ValueError(
+    #         "Node {0} doesn't exist".format(scalable_entity_name))
     # if delta == 0:
-    #     ctx.logger.info('delta parameter is 0, so no scaling will take place.')
+    #     ctx.logger.info(
+    #         'delta parameter is 0, so no scaling will take place.')
     #     return
     #
     # modification_data = build_modification_data_profile(ctx, dp_node, delta)
@@ -55,7 +57,8 @@ def scale_or_burst(ctx, scalable_entity_name, delta, **_):
     if delta > 0:
         modification_data = burst_up(ctx, scalable_entity_name, delta)
     elif delta < 0:
-        raise NotImplementedError('Currently scale down is not supported by Burst.')
+        raise NotImplementedError(
+            'Currently scale down is not supported by burst.')
     else:
         ctx.logger.info('delta parameter is 0, so no scaling will take place.')
         return
@@ -202,11 +205,13 @@ def heal_dp(ctx,
 #                                                        constraint_node,
 #                                                        modification_data,
 #                                                        nodes_group)
-#                     return assigned_node_in_fn, modification_data, nodes_group
+#                     return assigned_node_in_fn,
+#                            modification_data, nodes_group
 #         most_recent_count = \
 #             get_most_recent_count(_ctx, node_id, modification_data)
 #         new_count = most_recent_count + assigned_node_in_fn
-#         if node.get('capacity', float('inf')) >= new_count and unassigned_delta != 0:
+#         if node.get('capacity', float('inf')) >= new_count and
+#                 unassigned_delta != 0:
 #             _node_to_modify = _ctx.get_node(node_id)
 #             modification_data = \
 #                 update_deployment_modification(_ctx,
@@ -251,7 +256,8 @@ def heal_dp(ctx,
 #     _ctx.logger.debug('DP Node Plans: {0}'.format(dp_node_plans))
 #
 #     # The dp_nodes_group is a dictionary that contains each
-#     # possible scaling/bursting node, plus each of it's scaling/bursting rules.
+#     # possible scaling/bursting node,
+#     # plus each of it's scaling/bursting rules.
 #     dp_nodes_group = build_dp_nodes_group(_ctx,
 #                                           dp_node_group_ids,
 #                                           dp_node_plans)
