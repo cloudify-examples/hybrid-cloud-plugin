@@ -69,37 +69,74 @@ def check_target_is_constrained(_ctx, _target_node_constraints):
     return False
 
 
-def burst_up(ctx, scalable_entity_name, delta):
-
-    """
-    scalable_entity_name: Must be a deployment plan node type
-    delta: total new number of instances
-    """
+def burst_down(ctx,
+               mixed_node_id,
+               delta_copy,
+               mixed_target_node_ids,
+               modification_data):
 
     client = get_rest_client()
-    delta = int(delta)
-    delta_copy = delta
 
-    # This is the Mixed IaaS node that we will scale
-    # It will scale on target of its PLAN_RS relationships
-    mixed_node = ctx.get_node(scalable_entity_name)
-    if not mixed_node:
-        raise ValueError("Node {0} doesn't exist".format(scalable_entity_name))
+    while delta_copy < 0:
+        if len(mixed_target_node_ids) <= 0:
+            raise NonRecoverableError(
+                'The delta has not been assigned, '
+                'but there are no nodes to assign them to.')
 
-    # Create the first part of the modification_data dictionary
-    modification_data = {
-        mixed_node.id: {INSTANCES: mixed_node.number_of_instances}
-    }
-    ctx.logger.debug(
-        'Initial Modification Data: {0}'.format(modification_data))
+        target_node_id = mixed_target_node_ids.pop(0)
+        instances_of_node = client.node_instances.list(node_id=target_node_id)
 
-    # Get a list of possible targets
-    mixed_target_node_ids = get_mixed_node_target_ids(mixed_node)
-    ctx.logger.debug('Mixed Targets: {0}'.format(mixed_target_node_ids))
+        # Update the lock on everything first.
+        instances_of_node_with_lock = lock_or_unlock_node(instances_of_node)
+        for node_instance in instances_of_node_with_lock:
+            ni = client.node_instances.get(node_instance.id)
+            new_runtime_props = node_instance.runtime_properties
+            ctx.logger.debug('Changing lock on node instance: {0} {1}'.format(
+                ni.id, new_runtime_props.get('locked')))
+            client.node_instances.update(node_instance_id=ni.id,
+                                         state=ni.state,
+                                         runtime_properties=new_runtime_props,
+                                         version=ni.version)
 
-    # Get the mixed iaas nodes plan for the possible targets
-    plans = mixed_node.properties.get(PLANS)
-    ctx.logger.debug('Plans: {0}'.format(plans))
+        mixed_node_count = \
+            get_latest_node_instance_count(ctx,
+                                           mixed_node_id,
+                                           modification_data)
+        target_node_count = get_latest_node_instance_count(ctx,
+                                                           target_node_id,
+                                                           modification_data)
+
+        # If the lock is equal to 1, it means this node most recently locked.
+        # This means it was the last node to burst up, so it should be
+        # the first node to burst down. A bit naive, but it's fine.
+        for instance_of_node in \
+                client.node_instances.list(node_id=target_node_id):
+            if not instance_of_node.runtime_properties.get('locked') == 1:
+                continue
+        modification_data.update(
+            {
+                mixed_node_id: {INSTANCES: mixed_node_count - 1},
+                target_node_id: {INSTANCES: target_node_count - 1}
+            }
+        )
+        ctx.logger.debug(
+            'Updated Modification Data {0}'.format(modification_data))
+
+        # Decrement the delta so that we know how many instances we have added
+        delta_copy += 1
+        mixed_target_node_ids.append(target_node_id)
+
+    return modification_data
+
+
+def burst_up(ctx,
+             mixed_node_id,
+             delta_copy,
+             mixed_target_node_ids,
+             plans,
+             modification_data):
+
+    client = get_rest_client()
 
     # Assign delta while we haven't assigned it all
     # or if somehow the target list is empty
@@ -155,11 +192,11 @@ def burst_up(ctx, scalable_entity_name, delta):
         ctx.logger.debug('Adding node to plan: {0}'.format(target_node_id))
         mixed_node_count = \
             get_latest_node_instance_count(ctx,
-                                           scalable_entity_name,
+                                           mixed_node_id,
                                            modification_data)
         modification_data.update(
             {
-                scalable_entity_name: {INSTANCES: mixed_node_count + 1},
+                mixed_node_id: {INSTANCES: mixed_node_count + 1},
                 target_node_id: {INSTANCES: target_node_count + 1}
             }
         )
@@ -174,3 +211,51 @@ def burst_up(ctx, scalable_entity_name, delta):
         mixed_target_node_ids.append(target_node_id)
 
     return modification_data
+
+
+def burst(ctx, scalable_entity_name, delta):
+
+    """
+    scalable_entity_name: Must be a deployment plan node type
+    delta: total new number of instances
+    """
+
+    delta_copy = delta
+
+    # This is the Mixed IaaS node that we will scale
+    # It will scale on target of its PLAN_RS relationships
+    mixed_node = ctx.get_node(scalable_entity_name)
+    if not mixed_node:
+        raise ValueError("Node {0} doesn't exist".format(scalable_entity_name))
+
+    # Create the first part of the modification_data dictionary
+    modification_data = {
+        mixed_node.id: {INSTANCES: mixed_node.number_of_instances}
+    }
+    ctx.logger.debug(
+        'Initial Modification Data: {0}'.format(modification_data))
+
+    # Get a list of possible targets
+    mixed_target_node_ids = get_mixed_node_target_ids(mixed_node)
+    ctx.logger.debug('Mixed Targets: {0}'.format(mixed_target_node_ids))
+
+    # Get the mixed iaas nodes plan for the possible targets
+    plans = mixed_node.properties.get(PLANS)
+    ctx.logger.debug('Plans: {0}'.format(plans))
+
+    if delta > 0:
+        return burst_up(ctx,
+                        mixed_node.id,
+                        delta_copy,
+                        mixed_target_node_ids,
+                        plans,
+                        modification_data)
+    elif delta < 0:
+        return burst_up(ctx,
+                        mixed_node.id,
+                        delta_copy,
+                        mixed_target_node_ids,
+                        modification_data)
+    else:
+        ctx.logger.info('delta parameter is 0, so no scaling will take place.')
+        return
