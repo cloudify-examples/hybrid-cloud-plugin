@@ -27,8 +27,8 @@ MANAGING = 'managing'
 
 
 def get_node_instance(node_instance_id):
-    rest = get_rest_client()
-    return rest.node_instances.get(node_instance_id=node_instance_id)
+    client = get_rest_client()
+    return client.node_instances.get(node_instance_id=node_instance_id)
 
 
 @workflow
@@ -49,15 +49,12 @@ def heal_dp(ctx,
     ctx.logger.info("Starting 'dp_heal' workflow on {0}, Diagnosis: {1}"
                     .format(node_instance_id, diagnose_value))
     failing_node_instance = get_node_instance(node_instance_id)
-    failing_node_host = ctx.get_node_instance(
-        failing_node_instance.host_id
-    )
+    failing_node_host = get_node_instance(failing_node_instance.host_id)
+
+    failing_dp_node_managing_host_id = failing_node_host.runtime_properties[MANAGING]
+    failing_dp_node_managing_host = get_node_instance(failing_dp_node_managing_host_id)
 
     subgraph_node_instances = failing_node_host.get_contained_subgraph()
-    failing_dp_node_managing_host_id = \
-        failing_node_host.runtime_properties[MANAGING]
-    failing_dp_node_managing_host = \
-        ctx.get_node_instance(failing_dp_node_managing_host_id)
     subgraph_node_instances.update(
         failing_dp_node_managing_host.get_contained_subgraph())
     intact_nodes = set(ctx.node_instances) - subgraph_node_instances

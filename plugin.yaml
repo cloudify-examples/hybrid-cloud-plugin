@@ -51,7 +51,7 @@ workflows:
         description: >
           The number of additional instances to deploy.
 
-  dp_heal:
+  heal_dp:
     mapping: dp.dp_plugin.workflows.heal_dp
     parameters:
       node_instance_id:
@@ -60,4 +60,5 @@ workflows:
       diagnose_value:
         description: >
           If you want to tell everyone why.
+        default: 'Just cuz'
 
