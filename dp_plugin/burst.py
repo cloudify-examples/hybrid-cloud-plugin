@@ -251,11 +251,11 @@ def burst(ctx, scalable_entity_name, delta):
                         plans,
                         modification_data)
     elif delta < 0:
-        return burst_up(ctx,
-                        mixed_node.id,
-                        delta_copy,
-                        mixed_target_node_ids,
-                        modification_data)
+        return burst_down(ctx,
+                          mixed_node.id,
+                          delta_copy,
+                          mixed_target_node_ids,
+                          modification_data)
     else:
         ctx.logger.info('delta parameter is 0, so no scaling will take place.')
         return
