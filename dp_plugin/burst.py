@@ -14,6 +14,7 @@
 #    * limitations under the License.
 
 from cloudify.manager import get_rest_client
+from cloudify.exceptions import NonRecoverableError
 
 TARGETS_RS = 'cloudify.dp.relationships.plans'
 INSTANCES = 'instances'
@@ -102,7 +103,11 @@ def burst_up(ctx, scalable_entity_name, delta):
 
     # Assign delta while we haven't assigned it all
     # or if somehow the target list is empty
-    while delta_copy > 0 or len(mixed_target_node_ids) > 0:
+    while delta_copy > 0:
+        if len(mixed_target_node_ids) <= 0:
+            raise NonRecoverableError(
+                'The delta has not been assigned, '
+                'but there are no nodes to assign them to.')
         target_node_id = mixed_target_node_ids.pop(0)
         instances_of_node = client.node_instances.list(node_id=target_node_id)
 
@@ -112,8 +117,7 @@ def burst_up(ctx, scalable_entity_name, delta):
             ni = client.node_instances.get(node_instance.id)
             new_runtime_props = node_instance.runtime_properties
             ctx.logger.debug('Changing lock on node instance: {0} {1}'.format(
-                ni.id, ni.runtime_properties.get('locked')))
-            ctx.logger.debug('\nTHE WHOLE THING: {0}'.format(ni))
+                ni.id, new_runtime_props.get('locked')))
             client.node_instances.update(node_instance_id=ni.id,
                                          state=ni.state,
                                          runtime_properties=new_runtime_props,
