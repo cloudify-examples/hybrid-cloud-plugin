@@ -64,7 +64,7 @@ def check_target_is_constrained(_ctx, _target_node_constraints):
         for constraining_node_id, constraint in \
                 _target_node_constraints.items():
             plan_node = _ctx.get_node(constraining_node_id)
-            if constraint > plan_node.number_of_instances:
+            if constraint >= plan_node.number_of_instances:
                 return True
     return False
 
