@@ -60,12 +60,17 @@ def get_latest_node_instance_count(_ctx, _node_id, _modification_data):
     return node.number_of_instances
 
 
-def check_target_is_constrained(_ctx, _target_node_constraints):
+def check_target_is_constrained(_ctx,
+                                _target_node_constraints,
+                                _modification_data):
     if _target_node_constraints:
         for constraining_node_id, constraint in \
                 _target_node_constraints.items():
-            plan_node = _ctx.get_node(constraining_node_id)
-            if constraint >= plan_node.number_of_instances:
+            constraining_node_count = \
+                get_latest_node_instance_count(_ctx,
+                                               constraining_node_id,
+                                               _modification_data)
+            if constraint >= constraining_node_count:
                 return True
     return False
 
@@ -195,7 +200,8 @@ def burst_up(ctx,
 
         # If the node is constrained by other nodes, skip it.
         elif check_target_is_constrained(ctx,
-                                         target_node_plan.get('constraints')):
+                                         target_node_plan.get('constraints'),
+                                         modification_data):
             ctx.logger.debug('Node is constrained: {0}'.format(target_node_id))
             mixed_target_node_ids.append(target_node_id)
             continue
