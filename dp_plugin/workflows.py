@@ -43,6 +43,7 @@ def scale_or_burst(ctx, scalable_entity_name, delta, **_):
 
     deployment = get_deployment(ctx.deployment.id)
     nodes_to_scale = modification_data.keys()
+    nodes_to_scale.remove(scalable_entity_name)
     for node_to_scale in nodes_to_scale:
         for group in deployment.get('groups'):
             members = deployment['groups'][group]['members']
