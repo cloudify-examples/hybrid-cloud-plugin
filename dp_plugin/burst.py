@@ -121,7 +121,6 @@ def burst_down(ctx,
                                          runtime_properties=new_runtime_props,
                                          version=ni.version)
 
-
         # If the lock is equal to 1, it means this node most recently locked.
         # This means it was the last node to burst up, so it should be
         # the first node to burst down. A bit naive, but it's fine.

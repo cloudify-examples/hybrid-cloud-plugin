@@ -31,13 +31,29 @@ def get_node_instance(node_instance_id):
     return client.node_instances.get(node_instance_id=node_instance_id)
 
 
+def get_deployment(deployment_id):
+    client = get_rest_client()
+    return client.deployments.get(deployment_id=deployment_id)
+
+
 @workflow
 def scale_or_burst(ctx, scalable_entity_name, delta, **_):
     delta = int(delta)
     modification_data = burst(ctx, scalable_entity_name, delta)
+
+    deployment = get_deployment(ctx.deployment.id)
+    nodes_to_scale = modification_data.keys()
+    for node_to_scale in nodes_to_scale:
+        for group in deployment.get('groups'):
+            members = deployment['groups'][group]['members']
+            if node_to_scale in members:
+                modification_data[group] = \
+                    modification_data.pop(node_to_scale)
+
     modification = ctx.deployment.start_modification(modification_data)
     graph = ctx.graph_mode()
-    ctx.logger.debug('Raw modification: {0}'.format(modification._raw_modification))
+    ctx.logger.debug('Raw modification: {0}'.format(
+        modification._raw_modification))
     ctx.logger.debug('Added modification: {0}'.format(modification._added))
     ctx.logger.debug('Removed modification: {0}'.format(modification._removed))
     generic_scale(ctx, delta, modification, graph)
@@ -60,7 +76,8 @@ def heal_dp(ctx,
 
     # Get the target node of the mixed iaas node
     failing_mixed_host_node = get_node_instance(node_instance_id)
-    failing_target_host_node_id = failing_mixed_host_node.runtime_properties[MANAGING]
+    failing_target_host_node_id = \
+        failing_mixed_host_node.runtime_properties[MANAGING]
 
     failing_target_host_node = ctx.get_node_instance(
         failing_target_host_node_id)
