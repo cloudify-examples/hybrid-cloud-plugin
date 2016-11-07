@@ -38,6 +38,8 @@ def scale_or_burst(ctx, scalable_entity_name, delta, **_):
     modification = ctx.deployment.start_modification(modification_data)
     graph = ctx.graph_mode()
     ctx.logger.debug('Raw modification: {0}'.format(modification._raw_modification))
+    ctx.logger.debug('Added modification: {0}'.format(modification._added))
+    ctx.logger.debug('Removed modification: {0}'.format(modification._removed))
     generic_scale(ctx, delta, modification, graph)
 
 
