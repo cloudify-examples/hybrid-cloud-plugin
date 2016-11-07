@@ -1,0 +1,119 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+node_templates:
+
+  haproxy_frontend_host:
+    type: cloudify.nodes.DeploymentPlan
+    capabilities:
+      scalable:
+        properties:
+          default_instances: 1
+    properties:
+      deployment_plans:
+        haproxy_aws_virtual_machine:
+          capacity: 1
+        haproxy_openstack_virtual_machine:
+          capacity: 0
+    relationships:
+      - type: cloudify.dp.relationships.plans
+        target: haproxy_aws_virtual_machine
+      - type: cloudify.dp.relationships.plans
+        target: haproxy_openstack_virtual_machine
+    interfaces:
+      cloudify.interfaces.monitoring_agent:
+        install:
+          implementation: diamond.diamond_agent.tasks.install
+          inputs:
+            diamond_config:
+              interval: 5
+        start: diamond.diamond_agent.tasks.start
+        stop: diamond.diamond_agent.tasks.stop
+        uninstall: diamond.diamond_agent.tasks.uninstall
+      cloudify.interfaces.monitoring:
+          start:
+            implementation: diamond.diamond_agent.tasks.add_collectors
+            inputs:
+              collectors_config:
+                default:
+                  HAProxyCollector:
+                    config:
+                      url: http://127.0.0.1:9000/haproxy_stats;csv
+
+  mongod_host:
+    type: cloudify.nodes.DeploymentPlan
+    capabilities:
+      scalable:
+        properties:
+          default_instances: 1
+    properties:
+      deployment_plans:
+        mongodb_aws_virtual_machine:
+          capacity: 1
+        mongodb_openstack_virtual_machine:
+          capacity: 0
+    relationships:
+      - type: cloudify.dp.relationships.plans
+        target: mongodb_aws_virtual_machine
+      - type: cloudify.dp.relationships.plans
+        target: mongodb_openstack_virtual_machine
+    interfaces:
+      cloudify.interfaces.monitoring_agent:
+        install:
+          implementation: diamond.diamond_agent.tasks.install
+          inputs:
+            diamond_config:
+              interval: 5
+        start: diamond.diamond_agent.tasks.start
+        stop: diamond.diamond_agent.tasks.stop
+        uninstall: diamond.diamond_agent.tasks.uninstall
+
+  nodejs_host:
+    type: cloudify.nodes.DeploymentPlan
+    capabilities:
+      scalable:
+        properties:
+          default_instances: 2
+    properties:
+      deployment_plans:
+        nodejs_aws_virtual_machine:
+          capacity: 2
+        nodejs_openstack_virtual_machine:
+          contraints:
+            nodejs_aws_virtual_machine: 2
+    relationships:
+      - type: cloudify.dp.relationships.plans
+        target: nodejs_openstack_virtual_machine
+      - type: cloudify.dp.relationships.plans
+        target: nodejs_aws_virtual_machine
+    interfaces:
+      cloudify.interfaces.monitoring_agent:
+        install:
+          implementation: diamond.diamond_agent.tasks.install
+          inputs:
+            diamond_config:
+              interval: 5
+        start: diamond.diamond_agent.tasks.start
+        stop: diamond.diamond_agent.tasks.stop
+        uninstall: diamond.diamond_agent.tasks.uninstall
+      cloudify.interfaces.monitoring:
+          start:
+            implementation: diamond.diamond_agent.tasks.add_collectors
+            inputs:
+              collectors_config:
+                default:
+                  CPUCollector: {}
+                  MemoryCollector: {}
+                  LoadAverageCollector: {}
+                  DiskUsageCollector:
+                    config:
+                      devices: x?vd[a-z]+[0-9]*$
+                  NetworkCollector: {}
+                  ProcessResourcesCollector:
+                    config:
+                      enabled: true
+                      unit: B
+                      measure_collector_time: true
+                      cpu_interval: 0.5
+                      process:
+                        node:
+                          name: node

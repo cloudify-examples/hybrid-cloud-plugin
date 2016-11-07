@@ -1,0 +1,131 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+inputs:
+
+  use_existing_haproxy_openstack_virtual_machine:
+    type: boolean
+    default: false
+
+  haproxy_openstack_virtual_machine:
+    type: string
+    default: ''
+
+  use_existing_mongodb_openstack_virtual_machine:
+    type: boolean
+    default: false
+
+  mongodb_openstack_virtual_machine:
+    type: string
+    default: ''
+
+  use_existing_nodejs_openstack_virtual_machine:
+    type: boolean
+    default: false
+
+  nodejs_openstack_virtual_machine:
+    type: string
+    default: ''
+
+  example_openstack_virtual_machine_image_id:
+    type: string
+
+  example_openstack_virtual_machine_flavor_id:
+    type: string
+
+  haproxy_openstack_instances:
+    required: true
+
+  mongodb_openstack_instances:
+    required: true
+
+  nodejs_openstack_instances:
+    required: true
+
+  openstack_agent_username:
+    default: ubuntu
+
+  openstack_agent_local_path_to_key_file:
+    default: { get_input: example_openstack_key_file }
+
+  openstack_agent_port:
+    default: 22
+
+node_templates:
+
+  haproxy_openstack_virtual_machine:
+    type: cloudify.openstack.nodes.Server
+    capabilities:
+      scalable:
+        properties:
+          default_instances: { get_input: haproxy_openstack_instances }
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      agent_config:
+        install_method: none
+        user: { get_input: openstack_agent_username }
+        key: { get_input: openstack_agent_local_path_to_key_file }
+        port: { get_input: openstack_agent_port }
+      use_external_resource: { get_input: use_existing_haproxy_openstack_virtual_machine }
+      resource_id: { get_input: haproxy_openstack_virtual_machine }
+      server:
+        image: { get_input: example_openstack_virtual_machine_image_id }
+        flavor: { get_input: example_openstack_virtual_machine_flavor_id }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_network
+      - target: example_openstack_key
+        type: cloudify.openstack.server_connected_to_keypair
+      - target: haproxy_openstack_network_port
+        type: cloudify.openstack.server_connected_to_port
+
+  mongodb_openstack_virtual_machine:
+    type: cloudify.openstack.nodes.Server
+    capabilities:
+      scalable:
+        properties:
+          default_instances: { get_input: mongodb_openstack_instances }
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      agent_config:
+        install_method: none
+        user: { get_input: openstack_agent_username }
+        key: { get_input: openstack_agent_local_path_to_key_file }
+        port: { get_input: openstack_agent_port }
+      use_external_resource: { get_input: use_existing_mongodb_openstack_virtual_machine }
+      resource_id: { get_input: mongodb_openstack_virtual_machine }
+      server:
+        image: { get_input: example_openstack_virtual_machine_image_id }
+        flavor: { get_input: example_openstack_virtual_machine_flavor_id }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_private_network
+      - target: example_openstack_key
+        type: cloudify.openstack.server_connected_to_keypair
+      - target: openstack_mongodb_private_network_port
+        type: cloudify.openstack.server_connected_to_port
+
+  nodejs_openstack_virtual_machine:
+    type: cloudify.openstack.nodes.Server
+    capabilities:
+      scalable:
+        properties:
+          default_instances: { get_input: nodejs_openstack_instances }
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      agent_config:
+        install_method: none
+        user: { get_input: openstack_agent_username }
+        key: { get_input: openstack_agent_local_path_to_key_file }
+        port: { get_input: openstack_agent_port }
+      use_external_resource: { get_input: use_existing_nodejs_openstack_virtual_machine }
+      resource_id: { get_input: nodejs_openstack_virtual_machine }
+      server:
+        image: { get_input: example_openstack_virtual_machine_image_id }
+        flavor: { get_input: example_openstack_virtual_machine_flavor_id }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_private_network
+      - target: example_openstack_key
+        type: cloudify.openstack.server_connected_to_keypair
+      - target: openstack_nodejs_private_network_port
+        type: cloudify.openstack.server_connected_to_port
