@@ -1,0 +1,125 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+node_templates:
+
+  nodecellar:
+    type: nodecellar.nodes.NodecellarApplicationModule
+    relationships:
+
+      ################################
+      # Setting the mongo connection
+      ################################
+
+      - type: node_connected_to_mongo
+        target: mongod
+
+      ################################
+      # Setting the nodejs connection
+      ################################
+
+      - type: node_contained_in_nodejs
+        target: nodejs
+
+      ################################
+      # Setting the haproxy connection
+      ################################
+
+      - type: app_connected_to_haproxy
+        target: haproxy
+
+  mongod:
+    type: nodecellar.nodes.MonitoredMongoDatabase
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: mongod_host
+
+  nodejs:
+    type: nodecellar.nodes.NodeJSServer
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: nodejs_host
+
+  ########################################
+  # Note: only ubuntu haproxy installation
+  # is supported.
+  ########################################
+
+  haproxy:
+    type: nodecellar.nodes.MonitoredHAProxy
+    properties:
+      backend_app_port: { get_property: [ nodecellar, port ] }
+    relationships:
+      - target: haproxy_frontend_host
+        type: cloudify.relationships.contained_in
+
+groups:
+
+  openstack_nodejs_scale_group:
+    members: [nodejs_openstack_virtual_machine, openstack_nodejs_private_network_port]
+
+  scale_up_group:
+    members: [nodejs_host]
+    policies:
+      auto_scale_up:
+        type: scale_policy_type
+        properties:
+          policy_operates_on_group: true
+          scale_limit: 6
+          scale_direction: '<'
+          scale_threshold: 6
+          service_selector: .*nodejs_host.*.process.node.cpu.percent
+          cooldown_time: 60
+        triggers:
+          execute_scale_workflow:
+            type: cloudify.policies.triggers.execute_workflow
+            parameters:
+              workflow: scale_or_burst
+              workflow_parameters:
+                delta: 1
+                node_id: nodejs_host
+
+  scale_down_group:
+    members: [nodejs_host]
+    policies:
+      auto_scale_down:
+        type: scale_policy_type
+        properties:
+          scale_limit: 2
+          scale_direction: '>'
+          scale_threshold: 1
+          service_selector: .*nodejs_host.*.process.node.cpu.percent
+          cooldown_time: 60
+        triggers:
+          execute_scale_workflow:
+            type: cloudify.policies.triggers.execute_workflow
+            parameters:
+              workflow: scale_or_burst
+              workflow_parameters:
+                delta: -1
+                node_id: nodejs_host
+
+  heal_group:
+    members: [nodejs_host]
+    policies:
+      simple_autoheal_policy:
+        type: cloudify.policies.types.host_failure
+        properties:
+          service:
+            - .*nodejs_host.*.cpu.total.system
+          interval_between_workflows: 60
+        triggers:
+          auto_heal_trigger:
+            type: cloudify.policies.triggers.execute_workflow
+            parameters:
+              workflow: heal_dp
+              workflow_parameters:
+                node_instance_id: { 'get_property': [ SELF, node_id ] }
+                diagnose_value: { 'get_property': [ SELF, diagnose ] }
+
+policies:
+
+  openstack_nodejs_vms_burst_scaling_policy:
+    type: cloudify.policies.scaling
+    properties:
+      default_instances:  { get_input: nodejs_openstack_instances }
+    targets: [openstack_nodejs_scale_group]

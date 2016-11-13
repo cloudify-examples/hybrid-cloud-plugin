@@ -1,0 +1,49 @@
+aws_secret_access_key: ''
+aws_access_key_id: ''
+
+keystone_password: ''
+keystone_tenant_name: ''
+keystone_url: ''
+keystone_username: ''
+region: RegionOne
+
+example_openstack_virtual_machine_image_id: '' # Ubuntu 14.04 Trusty Image
+example_openstack_virtual_machine_flavor_id: ''
+
+use_existing_example_aws_vpc: true
+example_aws_vpc_id: ''
+
+use_existing_example_aws_public_subnet: true
+example_aws_public_subnet_id: ''
+
+use_existing_example_aws_private_subnet: true
+example_aws_private_subnet_id: ''
+
+use_existing_example_aws_security_group: true
+example_aws_security_group_id: '' # Should enable SSH access
+
+use_existing_example_openstack_network_router: true
+example_openstack_network_router_name: ''
+
+use_existing_example_openstack_network: true
+example_openstack_network_name: ''
+
+use_existing_example_openstack_network_subnet: true
+example_openstack_network_subnet: ''
+
+use_existing_example_openstack_private_network: true
+example_openstack_private_network_name: ''
+
+use_existing_example_openstack_private_network_subnet: true
+example_openstack_private_network_subnet: ''
+
+use_existing_example_openstack_group: true
+example_openstack_group_name: ''
+
+haproxy_openstack_instances: 0
+mongodb_openstack_instances: 0
+nodejs_openstack_instances: 1 # Limitation in Cloudify 3.4 - At least one instance in Burst target.
+
+haproxy_aws_instances: 1
+mongodb_aws_instances: 1
+nodejs_aws_instances: 1

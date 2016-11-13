@@ -1,0 +1,74 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+inputs:
+
+  use_existing_openstack_mongodb_private_port:
+    type: boolean
+    default: false
+
+  openstack_mongodb_private_network_port_name:
+    type: string
+    default: 'openstack-mongodb-private-network-port'
+
+  use_existing_openstack_nodejs_private_port:
+    type: boolean
+    default: false
+
+  openstack_nodejs_private_network_port_name:
+    type: string
+    default: 'openstack-nodejs-private-network-port'
+
+  example_openstack_private_network_port_address_pairs:
+    default: []
+
+node_templates:
+
+  openstack_mongodb_private_network_port:
+    type: cloudify.openstack.nodes.Port
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      use_external_resource: { get_input: use_existing_openstack_mongodb_private_port }
+      resource_id: { get_input: openstack_mongodb_private_network_port_name }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_private_network
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_private_network_subnet
+      - type: cloudify.openstack.port_connected_to_security_group
+        target: mongodb_openstack_group
+      - type: cloudify.openstack.port_connected_to_security_group
+        target: example_openstack_group
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: openstack.neutron_plugin.port.create
+          inputs:
+            args:
+              allowed_address_pairs: { get_input: example_openstack_private_network_port_address_pairs }
+
+  openstack_nodejs_private_network_port:
+    type: cloudify.openstack.nodes.Port
+    capabilities:
+      scalable:
+        properties:
+          default_instances: { get_input: nodejs_openstack_instances }
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      use_external_resource: { get_input: use_existing_openstack_nodejs_private_port }
+      resource_id: { get_input: openstack_nodejs_private_network_port_name }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_private_network
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_private_network_subnet
+      - type: cloudify.openstack.port_connected_to_security_group
+        target: nodejs_openstack_group
+      - type: cloudify.openstack.port_connected_to_security_group
+        target: example_openstack_group
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: openstack.neutron_plugin.port.create
+          inputs:
+            args:
+              allowed_address_pairs: { get_input: example_openstack_private_network_port_address_pairs }

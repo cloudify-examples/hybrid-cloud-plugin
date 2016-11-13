@@ -24,6 +24,10 @@ BA = 'burst_after'
 MANAGING = 'managing'
 
 
+def manager_client():
+    return get_rest_client()
+
+
 def get_mixed_node_target_ids(_mixed_node):
     # Build a list of TARGETS_RS relationship types to consider scaling
     return [rs.target_id if TARGETS_RS in rs._relationship["type_hierarchy"]
@@ -81,7 +85,7 @@ def burst_down(ctx,
                mixed_target_node_ids,
                modification_data):
 
-    client = get_rest_client()
+    client = manager_client()
 
     while delta_copy < 0:
         if len(mixed_target_node_ids) <= 0:
@@ -153,7 +157,7 @@ def burst_up(ctx,
              plans,
              modification_data):
 
-    client = get_rest_client()
+    client = manager_client()
 
     # Assign delta while we haven't assigned it all
     # or if somehow the target list is empty
@@ -184,7 +188,7 @@ def burst_up(ctx,
             mixed_target_node_ids.append(target_node_id)
             continue
 
-        target_node_plan = plans.get(target_node_id)
+        target_node_plan = plans.get(target_node_id, {})
         target_node_count = get_latest_node_instance_count(ctx,
                                                            target_node_id,
                                                            modification_data)

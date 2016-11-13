@@ -1,0 +1,41 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+inputs:
+
+  use_existing_haproxy_openstack_port:
+    type: boolean
+    default: false
+
+  haproxy_openstack_port:
+    type: string
+    default: 'haproxy-openstack-port'
+
+  example_openstack_network_port_address_pairs:
+    default: []
+
+node_templates:
+
+  haproxy_openstack_network_port:
+    type: cloudify.openstack.nodes.Port
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      use_external_resource: { get_input: use_existing_haproxy_openstack_port }
+      resource_id: { get_input: haproxy_openstack_port }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_network
+      - type: cloudify.relationships.depends_on
+        target: example_openstack_network_subnet
+      - type: cloudify.openstack.port_connected_to_security_group
+        target: haproxy_openstack_group
+      - type: cloudify.openstack.port_connected_to_security_group
+        target: example_openstack_group
+      - type: cloudify.openstack.port_connected_to_floating_ip
+        target: openstack_haproxy_ip
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: openstack.neutron_plugin.port.create
+          inputs:
+            args:
+              allowed_address_pairs: { get_input: example_openstack_network_port_address_pairs }
