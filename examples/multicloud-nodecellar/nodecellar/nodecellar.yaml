@@ -118,7 +118,7 @@ groups:
 
 policies:
 
-  openstack_nodejse_vms_burst_scaling_policy:
+  openstack_nodejs_vms_burst_scaling_policy:
     type: cloudify.policies.scaling
     properties:
       default_instances:  { get_input: nodejs_openstack_instances }

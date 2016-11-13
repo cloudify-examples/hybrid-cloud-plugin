@@ -45,13 +45,13 @@ inputs:
     default: m3.medium
 
   haproxy_aws_instances:
-    required: true
+    default: 1
 
   mongodb_aws_instances:
-    required: true
+    default: 1
 
   nodejs_aws_instances:
-    required: true
+    default: 1
 
   aws_agent_username:
     default: ubuntu

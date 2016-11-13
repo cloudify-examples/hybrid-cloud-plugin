@@ -1,5 +1,22 @@
 tosca_definitions_version: cloudify_dsl_1_3
 
+inputs:
+
+  default_nodejs_instances_total:
+    default: 2
+
+  nodejs_aws_max_instances:
+    default: 1
+
+  nodejs_openstack_max_instances:
+    default: 0
+
+  nodejs_aws_burst_after_aws_threshold:
+    default: nodejs_openstack_max_instances
+
+  nodejs_openstack_burst_after_aws_threshold:
+    default: { get_input: nodejs_aws_max_instances }
+
 node_templates:
 
   haproxy_frontend_host:
@@ -11,9 +28,9 @@ node_templates:
     properties:
       deployment_plans:
         haproxy_aws_virtual_machine:
-          capacity: 1
+          capacity: { get_input: haproxy_aws_instances }
         haproxy_openstack_virtual_machine:
-          capacity: 0
+          capacity: { get_input: haproxy_openstack_instances }
     relationships:
       - type: cloudify.dp.relationships.plans
         target: haproxy_aws_virtual_machine
@@ -34,10 +51,9 @@ node_templates:
             implementation: diamond.diamond_agent.tasks.add_collectors
             inputs:
               collectors_config:
-                default:
-                  HAProxyCollector:
-                    config:
-                      url: http://127.0.0.1:9000/haproxy_stats;csv
+                HAProxyCollector:
+                  config:
+                    url: http://127.0.0.1:9000/haproxy_stats;csv
 
   mongod_host:
     type: cloudify.nodes.DeploymentPlan
@@ -48,9 +64,9 @@ node_templates:
     properties:
       deployment_plans:
         mongodb_aws_virtual_machine:
-          capacity: 1
+          capacity: { get_input: mongodb_aws_instances }
         mongodb_openstack_virtual_machine:
-          capacity: 0
+          capacity:{ get_input: mongodb_openstack_instances }
     relationships:
       - type: cloudify.dp.relationships.plans
         target: mongodb_aws_virtual_machine
@@ -72,14 +88,17 @@ node_templates:
     capabilities:
       scalable:
         properties:
-          default_instances: 2
+          default_instances: { get_input: default_nodejs_instances_total }
     properties:
       deployment_plans:
         nodejs_aws_virtual_machine:
-          capacity: 2
-        nodejs_openstack_virtual_machine:
+          capacity: { get_input: nodejs_aws_max_instances }
           contraints:
-            nodejs_aws_virtual_machine: 2
+            nodejs_openstack_virtual_machine: { nodejs_aws_burst_after_aws_threshold }
+        nodejs_openstack_virtual_machine:
+          capacity: { get_input: nodejs_openstack_max_instances }
+          contraints:
+            nodejs_aws_virtual_machine: { nodejs_openstack_burst_after_aws_threshold }
     relationships:
       - type: cloudify.dp.relationships.plans
         target: nodejs_openstack_virtual_machine
@@ -100,20 +119,19 @@ node_templates:
             implementation: diamond.diamond_agent.tasks.add_collectors
             inputs:
               collectors_config:
-                default:
-                  CPUCollector: {}
-                  MemoryCollector: {}
-                  LoadAverageCollector: {}
-                  DiskUsageCollector:
-                    config:
-                      devices: x?vd[a-z]+[0-9]*$
-                  NetworkCollector: {}
-                  ProcessResourcesCollector:
-                    config:
-                      enabled: true
-                      unit: B
-                      measure_collector_time: true
-                      cpu_interval: 0.5
-                      process:
-                        node:
-                          name: node
+                CPUCollector: {}
+                MemoryCollector: {}
+                LoadAverageCollector: {}
+                DiskUsageCollector:
+                  config:
+                    devices: x?vd[a-z]+[0-9]*$
+                NetworkCollector: {}
+                ProcessResourcesCollector:
+                  config:
+                    enabled: true
+                    unit: B
+                    measure_collector_time: true
+                    cpu_interval: 0.5
+                    process:
+                      node:
+                        name: node

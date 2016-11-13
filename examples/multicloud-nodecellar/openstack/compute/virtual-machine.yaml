@@ -33,13 +33,13 @@ inputs:
     type: string
 
   haproxy_openstack_instances:
-    required: true
+    default: 0
 
   mongodb_openstack_instances:
-    required: true
+    default: 0
 
   nodejs_openstack_instances:
-    required: true
+    default: 1
 
   openstack_agent_username:
     default: ubuntu
