@@ -1,0 +1,43 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.4/types.yaml
+  - http://www.getcloudify.org/spec/diamond-plugin/1.3.3/plugin.yaml
+  - imports.yaml
+
+policy_types:
+  scale_policy_type:
+    source: policies/scale.clj
+    properties:
+      policy_operates_on_group:
+        default: true
+      service_selector:
+        description: regular expression that selects the metric to be measured
+        default: ".*"
+      moving_window_size:
+        description: the moving window for individual sources in secs
+        default: 10
+      scale_threshold:
+        description: the value to trigger scaling over aggregrated moving values
+      scale_limit:
+        description: scaling limit
+        default: 10
+      scale_direction:
+        description: scale up ('<') or scale down ('>')
+        default: '<'
+      cooldown_time:
+        description: the time to wait before evaluating again after a scale
+        default: 60
+
+groups:
+
+  openstack_node_scale_group:
+    members: [kubernetes_node_os_virtual_machine, kubernetes_node_os_private_network_port]
+
+policies:
+
+  openstack_kubernetes_node_vms_burst_scaling_policy:
+    type: cloudify.policies.scaling
+    properties:
+      default_instances: { get_input: kubernetes_node_os_instances }
+    targets: [openstack_node_scale_group]

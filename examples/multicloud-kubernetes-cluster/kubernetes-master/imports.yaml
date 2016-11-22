@@ -1,0 +1,32 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+inputs:
+
+  your_kubernetes_version:
+    description: >
+      The kubernetes version without the leading v.
+    default: '1.2.1'
+
+  your_etcd_version:
+    description: >
+      The etcd version.
+    default: '2.2.1'
+
+  your_flannel_version:
+    description: >
+      The flannel version
+    default: '0.5.5'
+
+  flannel_interface:
+    description: >
+      Which interface to bind flannel.
+    default: 'eth0'
+
+  flannel_ipmasq_flag:
+    description: >
+      Whether to ip masquerade.
+    default: 'true'
+
+  kubernetes_environment:
+    default:
+      the_master_ip_here: { get_attribute: [ kubernetes_master_vm, ip ] }

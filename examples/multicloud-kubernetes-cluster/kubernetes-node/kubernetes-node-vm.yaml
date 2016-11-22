@@ -1,0 +1,72 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+inputs:
+
+  total_kubernetes_node_vm:
+    default: 2
+
+  max_kubernetes_node_openstack:
+    default: 2
+
+  kubernetes_node_aws_contrains_os:
+    default: 2
+
+  max_kubernetes_node_aws:
+    default: 2
+
+  kubernetes_node_os_contrains_aws:
+    default: 0
+
+node_templates:
+
+  kubernetes_node_vm:
+    type: cloudify.nodes.DeploymentPlan
+    capabilities:
+      scalable:
+        properties:
+          default_instances: { get_input: total_kubernetes_node_vm }
+    properties:
+      deployment_plans:
+        kubernetes_node_os_virtual_machine:
+          capacity: { get_input: max_kubernetes_node_openstack }
+          constraints:
+            kubernetes_node_aws_virtual_machine: { get_input: kubernetes_node_aws_contrains_os }
+        kubernetes_node_aws_virtual_machine:
+          capacity: { get_input: max_kubernetes_node_aws }
+          constraints: { get_input: kubernetes_node_os_contrains_aws }
+    relationships:
+      - type: cloudify.dp.relationships.plans
+        target: kubernetes_node_os_virtual_machine
+      - type: cloudify.dp.relationships.plans
+        target: kubernetes_node_aws_virtual_machine
+    interfaces:
+      cloudify.interfaces.monitoring_agent:
+          install:
+            implementation: diamond.diamond_agent.tasks.install
+            inputs:
+              diamond_config:
+                interval: 1
+          start: diamond.diamond_agent.tasks.start
+          stop: diamond.diamond_agent.tasks.stop
+          uninstall: diamond.diamond_agent.tasks.uninstall
+      cloudify.interfaces.monitoring:
+          start:
+            implementation: diamond.diamond_agent.tasks.add_collectors
+            inputs:
+              collectors_config:
+                CPUCollector: {}
+                MemoryCollector: {}
+                LoadAverageCollector: {}
+                DiskUsageCollector:
+                  config:
+                    devices: x?vd[a-z]+[0-9]*$
+                NetworkCollector: {}
+                ProcessResourcesCollector:
+                  config:
+                    enabled: true
+                    unit: B
+                    measure_collector_time: true
+                    cpu_interval: 0.5
+                    process:
+                      hyperkube:
+                        name: hyperkube

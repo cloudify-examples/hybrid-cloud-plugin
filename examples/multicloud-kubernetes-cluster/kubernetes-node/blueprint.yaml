@@ -1,0 +1,7 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - kubernetes-node-vm.yaml
+  - docker.yaml
+  - flannel.yaml
+  - kubernetes-node.yaml

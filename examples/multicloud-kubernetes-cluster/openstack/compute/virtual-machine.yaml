@@ -1,0 +1,120 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+inputs:
+
+  use_existing_kubernetes_master_os_virtual_machine:
+    type: boolean
+    default: false
+
+  kubernetes_master_os_virtual_machine:
+    type: string
+    default: ''
+
+  kubernetes_master_os_virtual_machine_image_id:
+    type: string
+
+  kubernetes_master_os_virtual_machine_flavor_id:
+    type: string
+
+  kubernetes_master_os_instances:
+    default: 0
+
+  use_existing_kubernetes_node_os_virtual_machine:
+    type: boolean
+    default: false
+
+  kubernetes_node_os_virtual_machine:
+    type: string
+    default: ''
+
+  kubernetes_node_os_virtual_machine_image_id:
+    type: string
+
+  kubernetes_node_os_virtual_machine_flavor_id:
+    type: string
+
+  kubernetes_node_os_instances:
+    default: 1
+
+  openstack_agent_username:
+    default: ubuntu
+
+  openstack_agent_local_path_to_key_file:
+    default: { get_input: example_openstack_key_file }
+
+  openstack_agent_port:
+    default: 22
+
+node_templates:
+
+  kubernetes_master_os_virtual_machine:
+    type: cloudify.openstack.nodes.Server
+    capabilities:
+      scalable:
+        properties:
+          default_instances: { get_input: kubernetes_master_os_instances }
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      agent_config:
+        install_method: none
+        user: { get_input: openstack_agent_username }
+        key: { get_input: openstack_agent_local_path_to_key_file }
+        port: { get_input: openstack_agent_port }
+        env:
+          K8S_VERSION: { get_input: your_kubernetes_version }
+          ETCD_VERSION: { get_input: your_etcd_version }
+          FLANNEL_VERSION: { get_input: your_flannel_version }
+          FLANNEL_IFACE: { get_input: flannel_interface }
+          FLANNEL_IPMASQ: { get_input: flannel_ipmasq_flag }
+      use_external_resource: { get_input: use_existing_kubernetes_master_os_virtual_machine }
+      resource_id: { get_input: kubernetes_master_os_virtual_machine }
+      server:
+        userdata: |
+          #!/bin/bash
+          sudo groupadd docker
+          sudo gpasswd -a ubuntu docker
+        image: { get_input: kubernetes_master_os_virtual_machine_image_id }
+        flavor: { get_input: kubernetes_master_os_virtual_machine_flavor_id }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_private_network
+      - target: example_openstack_key
+        type: cloudify.openstack.server_connected_to_keypair
+      - target: kubernetes_master_os_public_network_port
+        type: cloudify.openstack.server_connected_to_port
+
+  kubernetes_node_os_virtual_machine:
+    type: cloudify.openstack.nodes.Server
+    capabilities:
+      scalable:
+        properties:
+          default_instances: { get_input: kubernetes_node_os_instances }
+    properties:
+      openstack_config: { get_input: openstack_configuration }
+      agent_config:
+        install_method: none
+        user: { get_input: openstack_agent_username }
+        key: { get_input: openstack_agent_local_path_to_key_file }
+        port: { get_input: openstack_agent_port }
+        env:
+          K8S_VERSION: { get_input: your_kubernetes_version }
+          ETCD_VERSION: { get_input: your_etcd_version }
+          FLANNEL_VERSION: { get_input: your_flannel_version }
+          FLANNEL_IFACE: { get_input: flannel_interface }
+          FLANNEL_IPMASQ: { get_input: flannel_ipmasq_flag }
+      use_external_resource: { get_input: use_existing_kubernetes_node_os_virtual_machine }
+      resource_id: { get_input: kubernetes_node_os_virtual_machine }
+      server:
+        userdata: |
+          #!/bin/bash
+          sudo groupadd docker
+          sudo gpasswd -a ubuntu docker
+        image: { get_input: kubernetes_node_os_virtual_machine_image_id }
+        flavor: { get_input: kubernetes_node_os_virtual_machine_flavor_id }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: example_openstack_private_network
+      - target: example_openstack_key
+        type: cloudify.openstack.server_connected_to_keypair
+      - target: kubernetes_node_os_private_network_port
+        type: cloudify.openstack.server_connected_to_port
