@@ -11,11 +11,22 @@ os.environ['MASTER_IP'] = inputs['the_master_ip_here']
 work_environment = os.environ.copy()
 work_dir = os.path.expanduser("~")
 
-HYPERKUBE_PULL_COMMAND = 'docker pull gcr.io/google_containers/hyperkube-amd64:v${K8S_VERSION}'
+HYPERKUBE_PULL_COMMAND = 'docker load -i {0}'
 START_HYPERKUBE = 'docker run --volume=/:/rootfs:ro --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:rw --volume=/var/lib/kubelet/:/var/lib/kubelet:rw --volume=/var/run:/var/run:rw --net=host --privileged=true --pid=host -d gcr.io/google_containers/hyperkube-amd64:v${K8S_VERSION} /hyperkube kubelet --allow-privileged=true --api-servers=http://localhost:8080 --v=2 --address=0.0.0.0 --enable-server --hostname-override=127.0.0.1 --config=/etc/kubernetes/manifests-multi --containerized --cluster-dns=18.1.0.1 --cluster-domain=cluster.local'
 
 
 def start_master():
+
+    try:
+        hyperkube_file = ctx.download_resource(
+            'scripts/kubernetes/resources/hypekube.tar')
+        HYPERKUBE_PULL_COMMAND = \
+            'docker load -i {0}' \
+            .format(hyperkube_file)
+    except RuntimeError:
+        HYPERKUBE_PULL_COMMAND = \
+            'docker pull ' \
+            'gcr.io/google_containers/hyperkube-amd64:v${K8S_VERSION}'
 
     subprocess.Popen(
         HYPERKUBE_PULL_COMMAND,

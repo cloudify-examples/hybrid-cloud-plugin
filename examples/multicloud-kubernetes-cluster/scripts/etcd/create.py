@@ -10,7 +10,6 @@ from cloudify.exceptions import NonRecoverableError
 os.environ['MASTER_IP'] = inputs['the_master_ip_here']
 work_environment = os.environ.copy()
 
-ETCD_PULL = 'sudo docker -H unix:///var/run/docker-bootstrap.sock load -i {0}'
 ETCD_BOOTSTRAP_COMMAND = 'sudo docker -H unix:///var/run/docker-bootstrap.sock run -d --net=host gcr.io/google_containers/etcd-amd64:${ETCD_VERSION} /usr/local/bin/etcd --listen-client-urls=http://127.0.0.1:4001,http://${MASTER_IP}:4001 --advertise-client-urls=http://${MASTER_IP}:4001 --data-dir=/var/etcd/data'
 ETCD_CIDR_SETUP_COMMAND = 'sudo docker -H unix:///var/run/docker-bootstrap.sock exec {0} etcdctl set /coreos.com/network/config \'{{ "Network": "18.1.0.0/16" }}\''
 ETCD_PROCESS = 'pgrep -f \'/usr/local/bin/etcd\''
@@ -21,10 +20,19 @@ def start_etcd():
 
     ctx.logger.debug('Running the etcd container.')
 
-    etc_file = ctx.download_resource('scripts/etcd/resources/etcd.tar')
+    try:
+        etc_file = ctx.download_resource(
+            'scripts/etcd/resources/etcd.tar')
+        ETCD_PULL = \
+            'sudo docker -H ' \
+            'unix:///var/run/docker-bootstrap.sock load -i {0}' \
+            .format(etc_file)
+    except RuntimeError:
+        ETCD_PULL = \
+            'sudo docker pull ${ETCD_VERSION}'
 
     subprocess.Popen(
-        ETCD_PULL.format(etc_file),
+        ETCD_PULL,
         env=work_environment,
         stdout=open('/tmp/etcd-out.log', 'w'),
         stderr=open('/tmp/etcd-err.log', 'w'),

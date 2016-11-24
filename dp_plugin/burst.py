@@ -81,7 +81,7 @@ def check_target_is_constrained(_ctx,
                 .format(constraining_node_id,
                         constraining_node_count,
                         constraint))
-            if constraint >= constraining_node_count:
+            if constraint > constraining_node_count:
                 return True
     return False
 
