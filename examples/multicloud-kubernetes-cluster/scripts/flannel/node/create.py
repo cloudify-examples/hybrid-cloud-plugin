@@ -11,7 +11,7 @@ os.environ['MASTER_IP'] = inputs['the_master_ip_here']
 work_environment = os.environ.copy()
 work_dir = os.path.expanduser("~")
 
-FLANNEL_PULL_COMMAND = 'docker -H unix:///var/run/docker-bootstrap.sock pull quay.io/coreos/flannel:${FLANNEL_VERSION}'
+FLANNEL_PULL_COMMAND = 'sudo docker -H unix:///var/run/docker-bootstrap.sock load -i {0}'
 FLANNEL_RUN_COMMAND = 'docker -H unix:///var/run/docker-bootstrap.sock run -d --net=host --privileged -v /dev/net:/dev/net quay.io/coreos/flannel:${FLANNEL_VERSION} /opt/bin/flanneld --ip-masq=${FLANNEL_IPMASQ} --etcd-endpoints=http://${MASTER_IP}:4001 --iface=${FLANNEL_IFACE}'
 FLANNEL_SUBNET_ENV = 'docker -H unix:///var/run/docker-bootstrap.sock exec {0} cat /run/flannel/subnet.env'
 
@@ -26,8 +26,10 @@ def run_flannel():
 
     ctx.logger.info('ENV: {0}'.format(work_environment))
 
+    flannel_file = ctx.download_resource('scripts/flannel/resources/flannel.tar')
+
     subprocess.Popen(
-        FLANNEL_PULL_COMMAND,
+        FLANNEL_PULL_COMMAND.format(flannel_file),
         stdout=open('/tmp/flannel-out.log', 'w'),
         stderr=open('/tmp/flannel-err.log', 'w'),
         env=work_environment,

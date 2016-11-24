@@ -96,27 +96,21 @@ if __name__ == '__main__':
 
     ctx.logger.info('Installing Kubernetes Dashboard')
 
-    pip.main(['install', 'PyYAML==3.10'])
-    import yaml
+    if ctx.operation.retry_number < 1:
 
-    create_app()
-    time.sleep(5)
+        pip.main(['install', 'PyYAML==3.10'])
+        import yaml
+        create_app()
+        time.sleep(5)
 
-    counter = 0
-    loop_max = 60
-    for x in range(0,loop_max):
+    response = requests.get(
+        'http://{0}:8080/ui'.format(
+            ctx.instance.host_ip)
+    )
 
-        response = requests.get(
-            'http://{0}:8080/ui'.format(
-                ctx.instance.host_ip)
-        )
-
-        if response.status_code == WORKING_CODE:
-            ctx.logger.info('Dashboard ready.')
-            break
-        elif counter >= loop_max - 1:
-            raise NonRecoverableError('Dashboard Never Started')
-
-        counter = counter + 1
-        time.sleep(1)
-
+    if response.status_code == WORKING_CODE:
+        ctx.logger.info('Dashboard ready.')
+    elif ctx.operation.retry_number >= 10:
+        raise NonRecoverableError('Dashboard Never Started')
+    else:
+        ctx.operation.retry('Dashboard did not start.')

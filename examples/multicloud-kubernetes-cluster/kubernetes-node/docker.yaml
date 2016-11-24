@@ -17,3 +17,5 @@ node_templates:
     relationships:
       - type: cloudify.relationships.contained_in
         target: kubernetes_node_vm
+      - type: cloudify.relationships.depends_on
+        target: kubernetes_master

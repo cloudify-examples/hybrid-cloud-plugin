@@ -14,7 +14,7 @@ inputs:
     default: ami-c8580bdf
 
   kubernetes_master_aws_virtual_machine_instance_type:
-    default: m3.medium
+    default: m3.large
 
   kubernetes_master_aws_instances:
     default: 1
@@ -31,7 +31,7 @@ inputs:
     default: ami-c8580bdf
 
   kubernetes_node_aws_virtual_machine_instance_type:
-    default: m3.medium
+    default: m3.large
 
   kubernetes_node_aws_instances:
     default: 1
@@ -44,6 +44,18 @@ inputs:
 
   aws_agent_port:
     default: 22
+
+  aws_kubernetes_master_user_data:
+    default: |
+      #!/bin/bash
+      sudo groupadd docker
+      sudo gpasswd -a ubuntu docker
+
+  aws_kubernetes_node_user_data:
+    default: |
+      #!/bin/bash
+      sudo groupadd docker
+      sudo gpasswd -a ubuntu docker
 
 node_templates:
 
@@ -71,10 +83,7 @@ node_templates:
       image_id: { get_input: kubernetes_master_aws_virtual_machine_image_id }
       instance_type: { get_input: kubernetes_master_aws_virtual_machine_instance_type }
       parameters:
-        user_data: |
-          #!/bin/bash
-          sudo groupadd docker
-          sudo gpasswd -a ubuntu docker
+        user_data: { get_input: aws_kubernetes_master_user_data }
         placement: { get_property: [ example_aws_private_subnet, availability_zone ] }
     relationships:
       - type: cloudify.aws.relationships.instance_contained_in_subnet
@@ -110,10 +119,7 @@ node_templates:
       image_id: { get_input: kubernetes_node_aws_virtual_machine_image_id }
       instance_type: { get_input: kubernetes_node_aws_virtual_machine_instance_type }
       parameters:
-        user_data: |
-          #!/bin/bash
-          sudo groupadd docker
-          sudo gpasswd -a ubuntu docker
+        user_data: { get_input: aws_kubernetes_node_user_data }
         placement: { get_property: [ example_aws_private_subnet, availability_zone ] }
     relationships:
       - type: cloudify.aws.relationships.instance_contained_in_subnet

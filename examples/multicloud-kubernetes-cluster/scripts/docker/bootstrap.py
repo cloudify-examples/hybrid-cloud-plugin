@@ -39,16 +39,21 @@ if __name__ == '__main__':
 
     docker_bootstrap()
 
+    time.sleep(5)
+
     timeout = time.time() + 5
-    while True:
+    success = False
+    for x in range(0,30):
         success_process = subprocess.Popen(
             SUCCESS_PROCESS.split(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
+        time.sleep(.5)
         if not success_process.returncode:
+            success = True
             break
-        if time.time() > timeout:
-            raise NonRecoverableError(
-                'Timed out waiting for Docker bootstrap to start.'
-            )
+    if not success:
+        raise NonRecoverableError(
+            'Failed to start Docker bootstrap '
+            'That\'s life.')

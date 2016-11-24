@@ -4,7 +4,7 @@ plugins:
 
   dp:
     executor: central_deployment_agent
-    source: https://github.com/cloudify-examples/mixed-iaas-plugin/archive/master.zip
+    source: https://github.com/cloudify-examples/mixed-iaas-plugin/archive/kubernetes-cluster-example.zip
     install: true
 
 node_types:

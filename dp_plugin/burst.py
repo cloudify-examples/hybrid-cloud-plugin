@@ -74,6 +74,13 @@ def check_target_is_constrained(_ctx,
                 get_latest_node_instance_count(_ctx,
                                                constraining_node_id,
                                                _modification_data)
+            _ctx.logger.debug(
+                'Constraining Node ID: {0} '
+                'Constraining Node Count: {1} '
+                'Constraint: {2}'
+                .format(constraining_node_id,
+                        constraining_node_count,
+                        constraint))
             if constraint >= constraining_node_count:
                 return True
     return False

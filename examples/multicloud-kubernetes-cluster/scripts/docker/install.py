@@ -51,13 +51,20 @@ def check_for_docker():
 
     if process.returncode:
         ctx.logger.error('Docker PS returncode was negative. '
-                        'Risk of bad installation.')
+                         'Risk of bad installation.')
         return False
 
     return True
 
 
 if __name__ == '__main__':
+
+    command = 'sudo apt-get update'
+    subprocess.Popen(
+        command.split(),
+        stdout=open(os.devnull, 'w'),
+        stderr=open(os.devnull, 'w')
+    ).wait()
 
     if not check_for_docker():
         ctx.logger.info('Install Docker.')
@@ -66,13 +73,6 @@ if __name__ == '__main__':
         st = os.stat(install_script)
         os.chmod(install_script, st.st_mode | stat.S_IEXEC)
         install_docker(install_script)
-    else:
-        command = 'sudo apt-get update'
-        subprocess.Popen(
-            command.split(),
-            stdout=open(os.devnull, 'w'),
-            stderr=open(os.devnull, 'w')
-        ).wait()
 
     if not check_for_docker():
         raise NonRecoverableError(
