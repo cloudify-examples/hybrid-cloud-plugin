@@ -1,0 +1,14 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - imports.yaml
+  - kubernetes-master-vm.yaml
+  - docker.yaml
+  - etcd.yaml
+  - flannel.yaml
+  - kubernetes-master.yaml
+  - kubectl.yaml
+  - kube-system-namespace.yaml
+  - dns.yaml
+  - dashboard.yaml
+  - sanity-application.yaml

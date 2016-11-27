@@ -1,0 +1,130 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+inputs:
+
+  use_existing_kubernetes_master_aws_virtual_machine:
+    type: boolean
+    default: false
+
+  kubernetes_master_aws_virtual_machine:
+    type: string
+    default: ''
+
+  kubernetes_master_aws_virtual_machine_image_id:
+    default: ami-c8580bdf
+
+  kubernetes_master_aws_virtual_machine_instance_type:
+    default: m3.large
+
+  kubernetes_master_aws_instances:
+    default: 1
+
+  use_existing_kubernetes_node_aws_virtual_machine:
+    type: boolean
+    default: false
+
+  kubernetes_node_aws_virtual_machine:
+    type: string
+    default: ''
+
+  kubernetes_node_aws_virtual_machine_image_id:
+    default: ami-c8580bdf
+
+  kubernetes_node_aws_virtual_machine_instance_type:
+    default: m3.large
+
+  kubernetes_node_aws_instances:
+    default: 1
+
+  aws_agent_username:
+    default: ubuntu
+
+  aws_agent_local_path_to_key_file:
+    default: { get_input: example_aws_key_file }
+
+  aws_agent_port:
+    default: 22
+
+  aws_kubernetes_master_user_data:
+    default: |
+      #!/bin/bash
+      sudo groupadd docker
+      sudo gpasswd -a ubuntu docker
+
+  aws_kubernetes_node_user_data:
+    default: |
+      #!/bin/bash
+      sudo groupadd docker
+      sudo gpasswd -a ubuntu docker
+
+node_templates:
+
+  kubernetes_master_aws_virtual_machine:
+    type: cloudify.aws.nodes.Instance
+    capabilities:
+      scalable:
+        properties:
+          default_instances: { get_input: kubernetes_master_aws_instances }
+    properties:
+      aws_config: { get_input: aws_configuration }
+      agent_config:
+        install_method: none
+        user: { get_input: aws_agent_username }
+        key: { get_input: aws_agent_local_path_to_key_file }
+        port: { get_input: aws_agent_port }
+        env:
+          K8S_VERSION: { get_input: your_kubernetes_version }
+          ETCD_VERSION: { get_input: your_etcd_version }
+          FLANNEL_VERSION: { get_input: your_flannel_version }
+          FLANNEL_IFACE: { get_input: flannel_interface }
+          FLANNEL_IPMASQ: { get_input: flannel_ipmasq_flag }
+      use_external_resource: { get_input: use_existing_kubernetes_master_aws_virtual_machine }
+      resource_id: { get_input: kubernetes_master_aws_virtual_machine }
+      image_id: { get_input: kubernetes_master_aws_virtual_machine_image_id }
+      instance_type: { get_input: kubernetes_master_aws_virtual_machine_instance_type }
+      parameters:
+        user_data: { get_input: aws_kubernetes_master_user_data }
+        placement: { get_property: [ example_aws_private_subnet, availability_zone ] }
+    relationships:
+      - type: cloudify.aws.relationships.instance_contained_in_subnet
+        target: example_aws_public_subnet
+      - type: cloudify.aws.relationships.instance_connected_to_security_group
+        target: example_aws_security_group
+      - type: cloudify.aws.relationships.instance_connected_to_keypair
+        target: example_aws_key
+      - type: cloudify.aws.relationships.instance_connected_to_elastic_ip
+        target: aws_kubernetes_master_ip
+
+  kubernetes_node_aws_virtual_machine:
+    type: cloudify.aws.nodes.Instance
+    capabilities:
+      scalable:
+        properties:
+          default_instances: { get_input: kubernetes_node_aws_instances }
+    properties:
+      aws_config: { get_input: aws_configuration }
+      agent_config:
+        install_method: none
+        user: { get_input: aws_agent_username }
+        key: { get_input: aws_agent_local_path_to_key_file }
+        port: { get_input: aws_agent_port }
+        env:
+          K8S_VERSION: { get_input: your_kubernetes_version }
+          ETCD_VERSION: { get_input: your_etcd_version }
+          FLANNEL_VERSION: { get_input: your_flannel_version }
+          FLANNEL_IFACE: { get_input: flannel_interface }
+          FLANNEL_IPMASQ: { get_input: flannel_ipmasq_flag }
+      use_external_resource: { get_input: use_existing_kubernetes_node_aws_virtual_machine }
+      resource_id: { get_input: kubernetes_node_aws_virtual_machine }
+      image_id: { get_input: kubernetes_node_aws_virtual_machine_image_id }
+      instance_type: { get_input: kubernetes_node_aws_virtual_machine_instance_type }
+      parameters:
+        user_data: { get_input: aws_kubernetes_node_user_data }
+        placement: { get_property: [ example_aws_private_subnet, availability_zone ] }
+    relationships:
+      - type: cloudify.aws.relationships.instance_contained_in_subnet
+        target: example_aws_private_subnet
+      - type: cloudify.aws.relationships.instance_connected_to_security_group
+        target: example_aws_security_group
+      - type: cloudify.aws.relationships.instance_connected_to_keypair
+        target: example_aws_key

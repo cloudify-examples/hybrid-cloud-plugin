@@ -1,0 +1,8 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - https://raw.githubusercontent.com/cloudify-examples/mixed-iaas-plugin/master/plugin.yaml
+  - aws/blueprint.yaml
+  - openstack/blueprint.yaml
+  - kubernetes-master/blueprint.yaml
+  - kubernetes-node/blueprint.yaml

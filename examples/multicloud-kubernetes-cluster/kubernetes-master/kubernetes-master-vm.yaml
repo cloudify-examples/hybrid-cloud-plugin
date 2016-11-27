@@ -1,0 +1,20 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+inputs:
+
+  total_kubernetes_master_vm:
+    default: 1
+
+node_templates:
+
+  kubernetes_master_vm:
+    type: cloudify.nodes.DeploymentPlan
+    capabilities:
+      scalable:
+        properties:
+          default_instances: { get_input: total_kubernetes_master_vm }
+    relationships:
+      - type: cloudify.dp.relationships.plans
+        target: kubernetes_master_aws_virtual_machine
+      - type: cloudify.dp.relationships.plans
+        target: kubernetes_master_os_virtual_machine

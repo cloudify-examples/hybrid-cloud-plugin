@@ -1,0 +1,20 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+node_templates:
+
+  flannel_kubernetes_node:
+    # Installs flannel on the node.
+    type: cloudify.nodes.Root
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: scripts/flannel/node/create.py
+          inputs:
+            the_master_ip_here: { get_attribute: [ kubernetes_master_vm, ip ] }
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: kubernetes_node_vm
+      - type: cloudify.relationships.depends_on
+        target: docker_kubernetes_node
+      - type: cloudify.relationships.connected_to
+        target: kubernetes_dns

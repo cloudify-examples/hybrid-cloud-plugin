@@ -1,0 +1,46 @@
+aws_secret_access_key: ''
+aws_access_key_id: ''
+
+keystone_password: ''
+keystone_tenant_name: ''
+keystone_url: ''
+keystone_username: ''
+region: ''
+
+# Get these inputs after setting up an environment with https://github.com/cloudify-examples/multicloud-fortigate-nfv-blueprint
+
+use_existing_example_aws_vpc: true
+example_aws_vpc_id: ''
+
+use_existing_example_aws_public_subnet: true
+example_aws_public_subnet_id: ''
+
+use_existing_example_aws_private_subnet: true
+example_aws_private_subnet_id: ''
+
+use_existing_example_aws_security_group: true
+example_aws_security_group_id: ''
+
+use_existing_example_openstack_network_router: true
+example_openstack_network_router_name: ''
+
+use_existing_example_openstack_network: true
+example_openstack_network_name: ''
+
+use_existing_example_openstack_network_subnet: true
+example_openstack_network_subnet: ''
+
+use_existing_example_openstack_private_network: true
+example_openstack_private_network_name: ''
+
+use_existing_example_openstack_private_network_subnet: true
+example_openstack_private_network_subnet: ''
+
+use_existing_example_openstack_group: true
+example_openstack_group_name: ''
+
+kubernetes_master_os_virtual_machine_image_id: ''
+kubernetes_master_os_virtual_machine_flavor_id: ''
+
+kubernetes_node_os_virtual_machine_image_id: ''
+kubernetes_node_os_virtual_machine_flavor_id: ''
