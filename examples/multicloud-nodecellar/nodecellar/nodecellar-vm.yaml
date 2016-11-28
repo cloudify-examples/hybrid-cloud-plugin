@@ -94,11 +94,11 @@ node_templates:
         nodejs_aws_virtual_machine:
           capacity: { get_input: nodejs_aws_max_instances }
           constraints:
-            nodejs_openstack_virtual_machine: { burst_aws_after_os }
+            nodejs_openstack_virtual_machine: { get_input: burst_aws_after_os }
         nodejs_openstack_virtual_machine:
           capacity: { get_input: nodejs_openstack_max_instances }
           constraints:
-            nodejs_aws_virtual_machine: { burst_os_after_aws }
+            nodejs_aws_virtual_machine: { get_input: burst_os_after_aws }
     relationships:
       - type: cloudify.dp.relationships.plans
         target: nodejs_openstack_virtual_machine
